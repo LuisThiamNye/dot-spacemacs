@@ -62,9 +62,9 @@ This function should only modify configuration layer settings."
      (version-control :variables
                       version-control-diff-tool 'diff-hl
                       version-control-global-margin t)
-     (treemacs :variables
-               treemacs-use-filewatch-mode t
-               treemacs-use-follow-mode t)
+     ;; (treemacs :variables
+     ;;           treemacs-use-filewatch-mode t
+     ;;           treemacs-use-follow-mode t)
      (shell :variables
             shell-default-shell 'vterm
             spacemacs-vterm-history-file-location "~/.zsh_history")
@@ -73,7 +73,7 @@ This function should only modify configuration layer settings."
      lsp
      (clojure :variables
               ;; clojure-backend 'cider
-              clojure-enable-fancify-symbols t
+              clojure-enable-fancify-symbols nil
               ;; don't need if lsp uses clj-kondo?
               ;; clojure-enable-linters '(clj-kondo joker)
               ;; less active and may cause issues with CIDER, so disabled by default
@@ -253,12 +253,9 @@ It should only modify the values of Spacemacs settings."
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(gruvbox
                          gruvbox-light-hard
-                         monokai
                          sanityinc-tomorrow-night
                          sanityinc-tomorrow-bright
-                         sanityinc-tomorrow-blue
-                         sanityinc-solarized-dark
-                         sanityinc-solarized-light)
+                         sanityinc-tomorrow-blue)
 
    ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
    ;; `all-the-icons', `custom', `doom', `vim-powerline' and `vanilla'. The
@@ -322,7 +319,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; If non-nil then the last auto saved layouts are resumed automatically upon
    ;; start. (default nil)
-   dotspacemacs-auto-resume-layouts t
+   dotspacemacs-auto-resume-layouts nil
 
    ;; If non-nil, auto-generate layout name when creating new layouts. Only has
    ;; effect when using the "jump to layout by number" commands. (default nil)
@@ -567,7 +564,11 @@ before packages are loaded."
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.lsp")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.DS_Store")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]resources[/\\\\]public")
+  (add-to-list 'lsp-file-watch-ignored "[/\\\\]app-output")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]yarn\\.lock")
+  (setq read-process-output-max (* 3 1024 1024))
+
+
 
   (spacemacs/toggle-truncate-lines-on)
   ;; Visual line navigation for textual modes
@@ -582,14 +583,14 @@ before packages are loaded."
   ;; (add-hook 'emacs-lisp-mode-hook #'lispy-mode)
   ;; (add-hook 'clojure-mode-hook #'lispy-mode)
 
-  (spacemacs/toggle-evil-safe-lisp-structural-editing-on-register-hooks-on)
+  (spacemacs/toggle-evil-safe-lisp-structural-editing-on-register-hooks)
 
   (define-key global-map (kbd "<magnify-up>") nil)
   (define-key global-map (kbd "<magnify-down>") nil)
 
   ;; cider-pprint-fn is obsolete for this
   (setq cider-print-fn 'fipp)
-  (setq cider-offer-to-open-cljs-app-in-browser nil)
+  (setq cider-offer-to-open-cljs-app-in-browser t)
   (setq clojure-align-forms-automatically t)
   ;; auto indent code. too aggressive with lsp
   (add-hook 'clojure-mode-hook #'aggressive-indent-mode)
@@ -600,15 +601,18 @@ before packages are loaded."
   ;;     (clojure-align)))
   ;; (add-hook 'after-save-hook #'indent-clojure)
 
+  ;; disabled as seems to cause massive slowdown with lsp:
   ;; fix way too eager aggressive indent with clojure lsp
-  (require 'aggressive-indent)
-  (add-to-list
-   'aggressive-indent-dont-indent-if
-   '(and (derived-mode-p 'clojure-mode)
-         (or (thing-at-point 'whitespace)
-             (string= ":" (thing-at-point 'sexp)) )
-         (null (string-blank-p (thing-at-point 'line)))
-         ))
+  ;; (require 'aggressive-indent)
+  ;; (add-to-list
+  ;;  'aggressive-indent-dont-indent-if
+  ;;  '(and (derived-mode-p 'clojure-mode)
+  ;;        (or (thing-at-point 'whitespace)
+  ;;            (string= ":" (thing-at-point 'sexp)) )
+  ;;        (null (string-blank-p (thing-at-point 'line)))
+  ;;        ))
+  ;; (add-to-list 'aggressive-indent-dont-indent-if
+  ;;              '(eq (char-before) ?\s))
 
   ;; for testing:
   ;;(setq aggressive-indent-dont-indent-if nil)
