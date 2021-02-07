@@ -593,7 +593,8 @@ before packages are loaded."
   (setq cider-offer-to-open-cljs-app-in-browser t)
   (setq clojure-align-forms-automatically t)
   ;; auto indent code. too aggressive with lsp
-  (add-hook 'clojure-mode-hook #'aggressive-indent-mode)
+  ;; disabled as seems to cause massive slowdown with lsp:
+  ;; (add-hook 'clojure-mode-hook #'aggressive-indent-mode)
   (add-hook 'emacs-elisp-mode-hook #'aggressive-indent-mode)
 
   ;; (defun indent-clojure ()
@@ -601,7 +602,6 @@ before packages are loaded."
   ;;     (clojure-align)))
   ;; (add-hook 'after-save-hook #'indent-clojure)
 
-  ;; disabled as seems to cause massive slowdown with lsp:
   ;; fix way too eager aggressive indent with clojure lsp
   ;; (require 'aggressive-indent)
   ;; (add-to-list
