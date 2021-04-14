@@ -50,8 +50,9 @@ This function should only modify configuration layer settings."
      emacs-lisp
      git
      github
-     (helm :variables helm-enable-auto-resize t)
-     ;; markdown
+     (helm :variables
+           helm-enable-auto-resize t)
+     (markdown :variables markdown-live-preview-engine 'vmd)
      multiple-cursors
      ;; org
      ;; (shell :variables
@@ -62,9 +63,9 @@ This function should only modify configuration layer settings."
      (version-control :variables
                       version-control-diff-tool 'diff-hl
                       version-control-global-margin t)
-     ;; (treemacs :variables
-     ;;           treemacs-use-filewatch-mode t
-     ;;           treemacs-use-follow-mode t)
+     (treemacs :variables
+               treemacs-use-filewatch-mode t
+               treemacs-use-follow-mode t)
      (shell :variables
             shell-default-shell 'vterm
             spacemacs-vterm-history-file-location "~/.zsh_history")
@@ -89,6 +90,9 @@ This function should only modify configuration layer settings."
                          doom-modeline-display-default-persp-name t
                          doom-modeline-minor-modes nil
                          doom-modeline-modal-icon nil)
+
+     ;; provides elisp formatting:
+     semantic
 
      )
 
@@ -252,10 +256,7 @@ It should only modify the values of Spacemacs settings."
    ;; Press `SPC T n' to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(gruvbox
-                         gruvbox-light-hard
-                         sanityinc-tomorrow-night
-                         sanityinc-tomorrow-bright
-                         sanityinc-tomorrow-blue)
+                         gruvbox-light-hard)
 
    ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
    ;; `all-the-icons', `custom', `doom', `vim-powerline' and `vanilla'. The
@@ -496,7 +497,7 @@ It should only modify the values of Spacemacs settings."
    ;; `trailing' to delete only the whitespace at end of lines, `changed' to
    ;; delete only whitespace for changed lines or `nil' to disable cleanup.
    ;; (default nil)
-   dotspacemacs-whitespace-cleanup 'trailing
+   dotspacemacs-whitespace-cleanup 'all
 
    ;; If non nil activate `clean-aindent-mode' which tries to correct
    ;; virtual indentation of simple modes. This can interfer with mode specific
@@ -542,6 +543,9 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
 
   ;; (setq cljr-ignore-analyzer-errors nil)
 
+   ;; Visual line navigation for textual modes
+   (add-hook 'text-mode-hook 'spacemacs/toggle-visual-line-navigation-on)
+
   )
 
 (defun dotspacemacs/user-load ()
@@ -564,24 +568,60 @@ before packages are loaded."
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.lsp")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.DS_Store")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]resources[/\\\\]public")
+  (add-to-list 'lsp-file-watch-ignored "[/\\\\]dist[/\\\\]")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]app-output")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]yarn\\.lock")
-  (setq read-process-output-max (* 3 1024 1024))
-
+  (setq read-process-output-max (* 3 1024 1024)
+        gc-cons-threshold (* 100 1024 1024)
+        lsp-file-watch-threshold 10000
+        lsp-headerline-breadcrumb-enable nil)
 
 
   (spacemacs/toggle-truncate-lines-on)
-  ;; Visual line navigation for textual modes
-  (add-hook 'text-mode-hook 'spacemacs/toggle-visual-line-navigation-on)
+
+
+  ;;
+  ;; mali-instrument https://github.com/setzer22/malli-instrument/blob/master/spacemacs-setup.el
+  ;;
+
+  (defun clojure-malli-instrument/with-require-malli (code)
+    (concat "(try (do (require '[malli-instrument.core]) "
+                code ")
+               (catch Exception e \"malli-instrument.core not found in project!\"))"))
+
+(defun clojure-malli-instrument/instrument-code ()
+  (clojure-malli-instrument/with-require-malli "(malli-instrument.core/instrument-all!)"))
+
+(defun clojure-malli-instrument/instrument-all! ()
+  (add-hook 'cider-file-loaded-hook 'clojure-malli-instrument/instrument-all!)
+  (cider-nrepl-send-sync-request
+   `("op" "eval"
+     "code" ,(clojure-malli-instrument/instrument-code))))
+
+(defun clojure-malli-instrument/unstrument-code ()
+  (clojure-malli-instrument/with-require-malli "(malli-instrument.core/unstrument-all!)"))
+
+(defun clojure-malli-instrument/unstrument-all! ()
+  (remove-hook 'cider-file-loaded-hook 'clojure-malli-instrument/instrument-all!)
+  (cider-nrepl-send-sync-request
+   `("op" "eval"
+     "code" ,(clojure-malli-instrument/unstrument-code))))
+
+(add-hook 'cider-file-loaded-hook 'clojure-malli-instrument/instrument-all!)
+
+(evil-leader/set-key-for-mode 'clojure-mode
+  "e k" (lambda () (interactive) (print (clojure-malli-instrument/instrument-all!)))
+  "e K" (lambda () (interactive) (print (clojure-malli-instrument/unstrument-all!))))
+
+;;
+;; end mali instrument
+;;
+
 
   (global-set-key (kbd "M-3") '(lambda () (interactive) (insert "#")))
   (global-set-key (kbd "M-8") '(lambda () (interactive) (insert "•")))
   (define-key winum-keymap (kbd "M-3") nil)
   (define-key winum-keymap (kbd "M-8") nil)
-
-  ;; Lispy
-  ;; (add-hook 'emacs-lisp-mode-hook #'lispy-mode)
-  ;; (add-hook 'clojure-mode-hook #'lispy-mode)
 
   (spacemacs/toggle-evil-safe-lisp-structural-editing-on-register-hooks)
 
@@ -590,8 +630,16 @@ before packages are loaded."
 
   ;; cider-pprint-fn is obsolete for this
   (setq cider-print-fn 'fipp)
-  (setq cider-offer-to-open-cljs-app-in-browser t)
-  (setq clojure-align-forms-automatically t)
+  (setq cider-offer-to-open-cljs-app-in-browser nil)
+
+  ;; indentinator
+  ;; (add-to-list 'load-path "packages/indentinator/")
+  ;; (require 'indentinator)
+  ;; (add-hook 'emacs-lisp-mode-hook #'indentinator-mode)
+  ;; (add-hook 'clojure-mode-hook #'indentinator-mode)
+
+
+  (setq clojure-align-forms-automatically nil)
   ;; auto indent code. too aggressive with lsp
   ;; disabled as seems to cause massive slowdown with lsp:
   ;; (add-hook 'clojure-mode-hook #'aggressive-indent-mode)
@@ -715,7 +763,7 @@ static char *gnus-pointer[] = {
  '(mouse-wheel-tilt-scroll t)
  '(ns-use-native-fullscreen t)
  '(package-selected-packages
-   '(cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
+   '(vmd-mode mmm-mode markdown-toc gh-md cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
  '(pdf-view-midnight-colors '("#b2b2b2" . "#292b2e"))
  '(pos-tip-background-color "#FFFACE")
  '(pos-tip-foreground-color "#272822")
