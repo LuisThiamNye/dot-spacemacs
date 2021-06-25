@@ -33,58 +33,135 @@ This function should only modify configuration layer settings."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
-     ;; C-a to toggle start of line/code
-     better-defaults
+     osx
+
+     (shell :variables
+            shell-default-shell 'eshell
+            spacemacs-vterm-history-file-location "~/.zsh_history")
+
+     (spacemacs-layouts :variables
+                        spacemacs-layouts-restrict-spc-tab t
+                        persp-autokill-buffer-on-remove 'kill-weak)
+
      (auto-completion :variables
                       auto-completion-return-key-behavior nil
                       auto-completion-tab-key-behavior 'complete
                       ;; auto-completion-complete-with-key-sequence "kj"
                       ;; auto-completion-complete-with-key-sequence-delay 0.1
                       auto-completion-minimum-prefix-length 1
-                      auto-completion-idle-delay 0.2
+                      auto-completion-idle-delay 0
                       auto-completion-private-snippets-directory nil
                       auto-completion-enable-snippets-in-popup t
-                      auto-completion-enable-help-tooltip t
+                      auto-completion-enable-help-tooltip nil
                       auto-completion-use-company-box nil
+                      ;; Beware: Sorting completion results is often done already by the
+                      ;; completion backend, doing it again in company may degrate performance.
                       auto-completion-enable-sort-by-usage t)
 
-     finance
+     (ivy :variables
+          ivy-wrap t
+          ivy-height 35)
 
-     emacs-lisp
-     git
+     (git :variables
+          git-magit-status-fullscreen t
+          magit-diff-refine-hunk t
+          git-enable-magit-todos-plugin t)
      github
-     (helm :variables
-           helm-enable-auto-resize t)
-     (markdown :variables markdown-live-preview-engine 'vmd)
-     multiple-cursors
-     ;; org
-     ;; (shell :variables
-     ;;        shell-default-height 30
-     ;;        shell-default-position 'bottom)
-     ;; spell-checking
-     syntax-checking
+
+     (ranger :variables
+             ranger-show-preview t
+             ranger-show-hidden t
+             ranger-cleanup-eagerly t
+             ranger-cleanup-on-disable t
+             ranger-ignored-extensions '("mkv" "flv" "iso" "mp4"))
+
      (version-control :variables
                       version-control-diff-tool 'diff-hl
                       version-control-global-margin t)
      (treemacs :variables
+               treemacs-indentation 1
+               treemacs-width 28
+               ;; Efficient use of space in treemacs-lsp display
+               treemacs-space-between-root-nodes nil
+               treemacs-use-scope-type 'Perspectives
                treemacs-use-filewatch-mode t
                treemacs-use-follow-mode t)
-     (shell :variables
-            shell-default-shell 'vterm
-            spacemacs-vterm-history-file-location "~/.zsh_history")
-     osx
+     graphviz
 
-     lsp
+     ;; Editing
+
+     (syntax-checking :variables syntax-checking-use-original-bitmaps t)
+
+     ;; C-a to toggle start of line/code
+     better-defaults
+     multiple-cursors
+
+     (lsp :variables
+          ;; lsp-clojure-custom-server-command "/Volumes/House/script/clojure-lsp/clojure-lsp-entry"
+          ;; Formatting and indentation - use Cider instead
+          lsp-enable-on-type-formatting t
+          ;; Set to nil to use CIDER features instead of LSP UI
+          lsp-enable-indentation t
+          lsp-enable-snippet t
+          ;; symbol highlighting - `lsp-toggle-symbol-highlight` toggles highlighting
+          lsp-enable-symbol-highlighting t
+          ;; Show lint error indicator in the mode-bar (tested on doom-modeline)
+          lsp-modeline-diagnostics-enable t
+          lsp-idle-delay 0.5
+
+          ;; popup documentation boxes
+          ;; lsp-ui-doc-enable nil          ;; disable all doc popups
+          lsp-ui-doc-show-with-cursor nil   ;; doc popup for cursor
+          lsp-ui-doc-show-with-mouse nil   ;; doc popup for mouse
+          ;; lsp-ui-doc-delay 2                ;; delay in seconds for popup to display
+          lsp-ui-doc-include-signature t    ;; include function signature
+          ;; lsp-ui-doc-position 'at-point  ;; top bottom at-point
+          lsp-ui-doc-alignment 'frame      ;; `frame' or `window'
+
+          lsp-headerline-breadcrumb-enable nil
+
+          ;; code actions and diagnostics text as right-hand side of buffer
+          lsp-ui-sideline-enable nil
+          lsp-ui-sideline-show-code-actions nil
+
+          ;; reference count for functions (assume their maybe other lenses in future)
+          lsp-lens-enable t
+
+          ;; Optimization for large files
+          lsp-file-watch-threshold 10000
+          lsp-log-io nil)
+
+     ;; Languages
+
      (clojure :variables
               ;; clojure-backend 'cider
+              cider-print-fn 'fipp
+              ;; auto trim the repl (number of characters)
+              cider-repl-buffer-size-limit (* 500 100)
+              cider-repl-display-help-banner nil
+              cider-offer-to-open-cljs-app-in-browser nil
+              cider-overlays-use-font-lock t
+
+              clojure-align-forms-automatically t
               clojure-enable-fancify-symbols nil
-              ;; don't need if lsp uses clj-kondo?
-              ;; clojure-enable-linters '(clj-kondo joker)
-              ;; less active and may cause issues with CIDER, so disabled by default
-              ;; clojure-enable-clj-refactor t
+              clojure-toplevel-inside-comment-form t
+              ;;
               )
+     emacs-lisp
+     semantic ;; provides elisp formatting:
+
+     org
+     asciidoc
+     (markdown :variables markdown-live-preview-engine 'vmd)
+
+     java
      html
      javascript
+     typescript
+
+     finance
+
+     ;; Themes
 
      (spacemacs-modeline :variables
                          doom-modeline-height 14
@@ -93,11 +170,11 @@ This function should only modify configuration layer settings."
                          doom-modeline-display-default-persp-name t
                          doom-modeline-minor-modes nil
                          doom-modeline-modal-icon nil)
+     (unicode-fonts :variables
+                    unicode-fonts-enable-ligatures t
+                    unicode-fonts-ligature-modes '(prog-mode))
      theming
-
-     ;; provides elisp formatting:
-     semantic
-
+     ;;
      )
 
 
@@ -109,13 +186,13 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(auto-indent-mode)
+   dotspacemacs-additional-packages '()
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
 
    ;; A list of packages that will not be installed and loaded.
-   dotspacemacs-excluded-packages '(electric-indent-mode)
+   dotspacemacs-excluded-packages '()
    ;; aggressive-indent-mode readme says it is more reliable than electric indent mode
 
    ;; Defines the behaviour of Spacemacs when installing packages.
@@ -177,7 +254,7 @@ It should only modify the values of Spacemacs settings."
    ;; Setting this >= 1 MB should increase performance for lsp servers
    ;; in emacs 27.
    ;; (default (* 1024 1024))
-   dotspacemacs-read-process-output-max (* 1024 1024)
+   dotspacemacs-read-process-output-max (* 1024 1024 3)
 
    ;; If non-nil then Spacelpa repository is the primary source to install
    ;; a locked version of packages. If nil then Spacemacs will install the
@@ -231,11 +308,17 @@ It should only modify the values of Spacemacs settings."
    ;; `recents' `bookmarks' `projects' `agenda' `todos'.
    ;; List sizes may be nil, in which case
    ;; `spacemacs-buffer-startup-lists-length' takes effect.
-   dotspacemacs-startup-lists '((recents . 5)
-                                (projects . 7))
+   dotspacemacs-startup-lists '((projects . 5)
+                                (recents . 7))
 
    ;; True if the home buffer should respond to resize events. (default t)
    dotspacemacs-startup-buffer-responsive t
+
+   ;; Show numbers before the startup list lines. (default t)
+   dotspacemacs-show-startup-list-numbers t
+
+   ;; The minimum delay in seconds between number key presses. (default 0.4)
+   dotspacemacs-startup-buffer-multi-digit-delay 0.4
 
    ;; Default major mode for a new empty buffer. Possible values are mode
    ;; names such as `text-mode'; and `nil' to use Fundamental mode.
@@ -243,7 +326,7 @@ It should only modify the values of Spacemacs settings."
    dotspacemacs-new-empty-buffer-major-mode 'text-mode
 
    ;; Default major mode of the scratch buffer (default `text-mode')
-   dotspacemacs-scratch-mode 'clojure-mode
+   dotspacemacs-scratch-mode 'emacs-lisp-mode
 
    ;; If non-nil, *scratch* buffer will be persistent. Things you write down in
    ;; *scratch* buffer will be saved and restored automatically.
@@ -264,6 +347,7 @@ It should only modify the values of Spacemacs settings."
                          doom-Iosvkem
                          doom-molokai
                          doom-monokai-pro
+
                          doom-monokai-spectrum
                          doom-dark+
                          doom-vibrant
@@ -272,6 +356,7 @@ It should only modify the values of Spacemacs settings."
                          doom-laserwave
                          ;; light
                          doom-one-light
+
                          doom-opera-light
                          doom-acario-light
                          doom-solarized-light
@@ -388,7 +473,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; If non-nil the frame is fullscreen when Emacs starts up. (default nil)
    ;; (Emacs 24.4+ only)
-   dotspacemacs-fullscreen-at-startup nil
+   dotspacemacs-fullscreen-at-startup t
 
    ;; If non-nil `spacemacs/toggle-fullscreen' will not use native fullscreen.
    ;; Use to disable fullscreen animations in OSX. (default nil)
@@ -397,7 +482,7 @@ It should only modify the values of Spacemacs settings."
    ;; If non-nil the frame is maximized when Emacs starts up.
    ;; Takes effect only if `dotspacemacs-fullscreen-at-startup' is nil.
    ;; (default nil) (Emacs 24.4+ only)
-   dotspacemacs-maximized-at-startup nil
+   dotspacemacs-maximized-at-startup t
 
    ;; If non-nil the frame is undecorated when Emacs starts up. Combine this
    ;; variable with `dotspacemacs-maximized-at-startup' in OSX to obtain
@@ -428,7 +513,11 @@ It should only modify the values of Spacemacs settings."
    ;; If non-nil smooth scrolling (native-scrolling) is enabled. Smooth
    ;; scrolling overrides the default behavior of Emacs which recenters point
    ;; when it reaches the top or bottom of the screen. (default t)
-   dotspacemacs-smooth-scrolling nil
+   dotspacemacs-smooth-scrolling t
+
+   ;; Show the scroll bar while scrolling. The auto hide time can be configured
+   ;; by setting this variable to a number. (default t)
+   dotspacemacs-scroll-bar-while-scrolling nil
 
    ;; Control line numbers activation.
    ;; If set to `t', `relative' or `visual' then line numbers are enabled in all
@@ -470,7 +559,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; If non-nil, start an Emacs server if one is not already running.
    ;; (default nil)
-   dotspacemacs-enable-server nil
+   dotspacemacs-enable-server t
 
    ;; Set the emacs server socket location.
    ;; If nil, uses whatever the Emacs default is, otherwise a directory path
@@ -504,8 +593,11 @@ It should only modify the values of Spacemacs settings."
    ;; %n - Narrow if appropriate
    ;; %z - mnemonics of buffer, terminal, and keyboard coding systems
    ;; %Z - like %z, but including the end-of-line format
+   ;; If nil then Spacemacs uses default `frame-title-format' to avoid
+   ;; performance issues, instead of calculating the frame title by
+   ;; `spacemacs/title-prepare' all the time.
    ;; (default "%I@%S")
-   dotspacemacs-frame-title-format "%a - %t"
+   dotspacemacs-frame-title-format nil
 
    ;; Format specification for setting the icon title format
    ;; (default nil - same as frame-title-format)
@@ -580,6 +672,15 @@ This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; Kaocha runner
+  (add-to-list 'load-path "~/.spacemacs.d/packages/kaocha-runner")
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; LSP
+  ;;
   (require 'lsp-mode)
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.clj-kondo")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.shadow-cljs")
@@ -591,50 +692,33 @@ before packages are loaded."
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]dist[/\\\\]")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]app-output")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]yarn\\.lock")
-  (setq read-process-output-max (* 3 1024 1024)
-        gc-cons-threshold
-        (* 100 1024 1024)
-        lsp-file-watch-threshold
-        10000
-        lsp-headerline-breadcrumb-enable
-        nil)
-  (spacemacs/toggle-truncate-lines-on)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
-  ;; mali-instrument https://github.com/setzer22/malli-instrument/blob/master/spacemacs-setup.el
+  ;; Projectile
   ;;
-  (defun clojure-malli-instrument/with-require-malli (code)
-    (concat "(try (do (require '[malli-instrument.core]) "
-            code ")
-               (catch Exception e \"malli-instrument.core not found in project!\"))"))
-  (defun clojure-malli-instrument/instrument-code ()
-    (clojure-malli-instrument/with-require-malli
-     "(malli-instrument.core/instrument-all!)"))
-  (defun clojure-malli-instrument/instrument-all! ()
-    (add-hook 'cider-file-loaded-hook 'clojure-malli-instrument/instrument-all!)
-    (cider-nrepl-send-sync-request `("op" "eval"
-                                     "code"
-                                     ,(clojure-malli-instrument/instrument-code))))
-  (defun clojure-malli-instrument/unstrument-code ()
-    (clojure-malli-instrument/with-require-malli
-     "(malli-instrument.core/unstrument-all!)"))
-  (defun clojure-malli-instrument/unstrument-all! ()
-    (remove-hook 'cider-file-loaded-hook 'clojure-malli-instrument/instrument-all!)
-    (cider-nrepl-send-sync-request `("op" "eval"
-                                     "code"
-                                     ,(clojure-malli-instrument/unstrument-code))))
-  (add-hook 'cider-file-loaded-hook 'clojure-malli-instrument/instrument-all!)
-  (evil-leader/set-key-for-mode 'clojure-mode
-    "e k"
-    (lambda ()
-      (interactive)
-      (print (clojure-malli-instrument/instrument-all!)))
-    "e K"
-    (lambda ()
-      (interactive)
-      (print (clojure-malli-instrument/unstrument-all!))))
   ;;
-  ;; end mali instrument
+  (setq-default projectile-indexing-method 'hybrid)
+
+  ;;;;;;
+  ;; this does not work, needs a hook
+  ;; (spacemacs/toggle-truncate-lines-on)
+
+  ;;;;;;;;;;;;;;;;;;;;;
   ;;
+  ;; Solve the problem of deadly slow autocomplete when using semantic mode
+  ;; https://github.com/syl20bnr/spacemacs/issues/1907
+  ;; https://github.com/syl20bnr/spacemacs/issues/11058#issuecomment-407269954
+  (defun et/semantic-remove-hooks ()
+    (remove-hook 'completion-at-point-functions
+                 'semantic-analyze-completion-at-point-function)
+    (remove-hook 'completion-at-point-functions
+                 'semantic-analyze-notc-completion-at-point-function)
+    (remove-hook 'completion-at-point-functions
+                 'semantic-analyze-nolongprefix-completion-at-point-function))
+
+  (add-hook 'semantic-mode-hook #'et/semantic-remove-hooks)
+
   ;;;;;;;;;;
   ;;
   ;; rebindings
@@ -642,7 +726,7 @@ before packages are loaded."
   (global-set-key (kbd "M-3")
                   '(lambda ()
                      (interactive)
-                     (insert "#")))
+                     (insert "£")))
   (global-set-key (kbd "M-8")
                   '(lambda ()
                      (interactive)
@@ -651,38 +735,57 @@ before packages are loaded."
   (define-key winum-keymap (kbd "M-8") nil)
   (define-key global-map (kbd "<magnify-up>") nil)
   (define-key global-map (kbd "<magnify-down>") nil)
+
+  (require 'treemacs-mode)
+  (define-key treemacs-mode-map [mouse-1] #'treemacs-single-click-expand-action)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
-  ;; enable font ligeratures
-  (mac-auto-operator-composition-mode t)
+  ;; THEME
+  ;;
+  (setq doom-gruvbox-dark-variant "medium")
+  (setq doom-gruvbox-light-variant "hard")
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; Editing
+  ;;
 
   (spacemacs/toggle-evil-safe-lisp-structural-editing-on-register-hooks)
-  ;; cider-pprint-fn is obsolete for this
-  (setq cider-print-fn 'fipp)
-  (setq cider-offer-to-open-cljs-app-in-browser
-        nil)
-
   ;;;;;;;;;;;;
   ;;
   ;; Indentation
   ;;
+  (require 'clojure-mode)
 
-  ;; auto-indent-mode
-  (require 'auto-indent-mode)
-  (auto-indent-global-mode)
-  ;;
+  (define-clojure-indent
+    (>defn :defn)
+    (>defn- :defn)
+    (case-eval :defn))
 
-  ;; indentinator -----------
-  (add-to-list 'load-path "~/spacemacs.d/packages/indentinator/")
+  ;; (setq cider-format-code-options '(("indents" ((">defn" (("inner" 1)))))))
+
+  ;; disable LSP indent on paste
+  ;; https://github.com/syl20bnr/spacemacs/issues/14488
+  ;; (dolist (func '(yank yank-pop evil-paste-before evil-paste-after))
+  ;;   (advice-remove func #'spacemacs//yank-indent-region))
+
+
+  ;; indentinator ------------
+  ;; (add-to-list 'load-path "/Users/luis/.spacemacs.d/packages/indentinator")
   ;; (require 'indentinator)
   ;; (add-hook 'emacs-lisp-mode-hook #'indentinator-mode)
   ;; (add-hook 'clojure-mode-hook #'indentinator-mode)
-  (setq clojure-align-forms-automatically t)
+  ;; (setq indentinator-initial-idle-time 0.6)
+  ;; (setq indentinator-idle-time 0.6)
+  ;;
   ;;
 
   ;; auto indent code. too aggressive with lsp
   ;; seems to cause massive slowdown with lsp:
   ;; (add-hook 'clojure-mode-hook #'aggressive-indent-mode)
   ;; (add-hook 'emacs-elisp-mode-hook #'aggressive-indent-mode)
+
   ;; (defun indent-clojure ()
   ;;   (when (eq major-mode 'clojure-mode)
   ;;     (clojure-align)))
@@ -702,9 +805,6 @@ before packages are loaded."
 
   ;; for testing:
   ;;(setq aggressive-indent-dont-indent-if nil)
-
-  (setq lsp-enable-on-type-formatting nil)
-  (setq lsp-enable-indentation nil)
 
   ;;;;;;;;;;;;;;;;;
   ;;
@@ -813,10 +913,21 @@ static char *gnus-pointer[] = {
  '(mouse-wheel-tilt-scroll t)
  '(ns-use-native-fullscreen t t)
  '(package-selected-packages
-   '(doom-themes cyberpunk-theme flycheck-ledger evil-ledger ledger-mode stickyfunc-enhance srefactor vmd-mode mmm-mode markdown-toc gh-md cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
+   '(mvn maven-test-mode lsp-java dap-mode bui groovy-mode groovy-imports orgit-forge orgit org-rich-yank org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download org-contrib org org-cliplink org-brain gnuplot evil-org adoc-mode markup-faces magit-todos wgrep unicode-fonts ucs-utils font-utils smex ranger persistent-soft lsp-ivy ligature ivy-yasnippet ivy-xref ivy-purpose ivy-hydra ivy-avy graphviz-dot-mode counsel-projectile counsel-css counsel swiper ivy company-box frame-local doom-themes cyberpunk-theme flycheck-ledger evil-ledger ledger-mode stickyfunc-enhance srefactor vmd-mode mmm-mode markdown-toc gh-md cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
  '(pdf-view-midnight-colors '("#b2b2b2" . "#292b2e"))
  '(pos-tip-background-color "#FFFACE")
  '(pos-tip-foreground-color "#272822")
+ '(safe-local-variable-values
+   '((cider-clojure-cli-aliases . "test:cljs")
+     (cider-clojure-cli-aliases . "test:dev:electron-hub")
+     (cider-clojure-cli-aliases . "test:dev:workspaces")
+     (cider-clojure-cli-aliases . "snoop:test:dev")
+     (cider-clojure-cli-aliases . "debug:test")
+     (cider-clojure-cli-aliases . "debug")
+     (options-global-cli-aliases . "cljs:dev")
+     (javascript-backend . tide)
+     (javascript-backend . tern)
+     (javascript-backend . lsp)))
  '(scroll-bar-mode nil)
  '(scroll-conservatively 101)
  '(scroll-preserve-screen-position t)
