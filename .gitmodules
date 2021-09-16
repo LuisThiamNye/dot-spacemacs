@@ -1,0 +1,6 @@
+[submodule "indentinator"]
+	path = packages/indentinator
+	url = https://github.com/xendk/indentinator
+[submodule "kaocha-runner"]
+	path = packages/kaocha-runner
+	url = https://github.com/magnars/kaocha-runner.el.git
