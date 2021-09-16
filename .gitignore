@@ -1,6 +1,4 @@
 .DS_Store
-/packages/*
 /.spacemacs.env
-!/packages/zprint-mode/
 .stignore
 recentf
