@@ -2,6 +2,11 @@
 ;; This file is loaded by Spacemacs at startup.
 ;; It must be stored in your home directory.
 
+(setq home-dir
+      (pcase system-type
+        ('darwin "/sdfUsers/luis/")
+        ('gnu/linux "/home/luis/")))
+
 (defun dotspacemacs/layers ()
   "Layer configuration:
 This function should only modify configuration layer settings."
@@ -98,10 +103,11 @@ This function should only modify configuration layer settings."
 
      (lsp :variables
           ;; lsp-clojure-custom-server-command "/Volumes/House/script/clojure-lsp/clojure-lsp-entry"
-          ;; Formatting and indentation - use Cider instead
-          lsp-enable-on-type-formatting t
-          ;; Set to nil to use CIDER features instead of LSP UI
-          lsp-enable-indentation t
+          ;; Formatting and indentation
+          ;; setting to nil to increase responsiveness when editing
+          lsp-enable-on-type-formatting nil ;; clojure-lsp currently does not support onTypeFormatting
+          lsp-enable-indentation nil ;; must restart the backend to take effect
+
           lsp-enable-snippet t
           ;; symbol highlighting - `lsp-toggle-symbol-highlight` toggles highlighting
           lsp-enable-symbol-highlighting t
@@ -126,6 +132,8 @@ This function should only modify configuration layer settings."
 
           ;; reference count for functions (assume their maybe other lenses in future)
           lsp-lens-enable t
+          lsp-lens-debounce-interval 0.1 ;; 0.001
+          ;; lsp-lens-place-position 'end-of-line
 
           ;; Optimization for large files
           lsp-file-watch-threshold 10000
@@ -135,7 +143,16 @@ This function should only modify configuration layer settings."
 
      (clojure :variables
               ;; clojure-backend 'cider
+
+              ;; https://docs.cider.mx/cider/1.1/usage/pretty_printing.html
               cider-print-fn 'fipp
+              cider-print-quota 500000
+              cider-print-options '(("length" 50)
+                                    ("level" 7)
+                                    ("right-margin" 72) ;; pprint default: 72
+                                    )
+
+
               ;; auto trim the repl (number of characters)
               cider-repl-buffer-size-limit (* 500 100)
               cider-repl-display-help-banner nil
@@ -147,13 +164,20 @@ This function should only modify configuration layer settings."
               clojure-toplevel-inside-comment-form t
               ;;
               )
+     (dart :variables
+           lsp-dart-sdk-dir (concat home-dir "installations/flutter/bin/cache/dart-sdk/")
+           lsp-dart-flutter-sdk-dir (concat home-dir "installations/flutter/")
+           flutter-sdk-path (concat home-dir "installations/flutter/"))
      emacs-lisp
      semantic ;; provides elisp formatting:
+
+     (nixos :variables nixos-format-on-save t)
 
      org
      asciidoc
      (markdown :variables markdown-live-preview-engine 'vmd)
 
+     yaml
      java
      html
      javascript
@@ -164,7 +188,7 @@ This function should only modify configuration layer settings."
      ;; Themes
 
      (spacemacs-modeline :variables
-                         doom-modeline-height 14
+                         doom-modeline-height 12
                          doom-modeline-major-mode-color-icon nil
                          doom-modeline-buffer-file-name-style 'relative-to-project
                          doom-modeline-display-default-persp-name t
@@ -186,7 +210,7 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '()
+   dotspacemacs-additional-packages '(kaocha-runner clj-decompiler)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -305,11 +329,14 @@ It should only modify the values of Spacemacs settings."
    ;; List of items to show in startup buffer or an association list of
    ;; the form `(list-type . list-size)`. If nil then it is disabled.
    ;; Possible values for list-type are:
-   ;; `recents' `bookmarks' `projects' `agenda' `todos'.
+   ;; `recents' `recents-by-project' `bookmarks' `projects' `agenda' `todos'.
    ;; List sizes may be nil, in which case
    ;; `spacemacs-buffer-startup-lists-length' takes effect.
-   dotspacemacs-startup-lists '((projects . 5)
-                                (recents . 7))
+   ;; The exceptional case is `recents-by-project', where list-type must be a
+   ;; pair of numbers, e.g. `(recents-by-project . (7 .  5))', where the first
+   ;; number is the project limit and the second the limit on the recent files
+   ;; within a project.
+   dotspacemacs-startup-lists '((recents-by-project . (7 . 5)))
 
    ;; True if the home buffer should respond to resize events. (default t)
    dotspacemacs-startup-buffer-responsive t
@@ -451,7 +478,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; Which-key delay in seconds. The which-key buffer is the popup listing
    ;; the commands bound to the current keystroke sequence. (default 0.4)
-   dotspacemacs-which-key-delay 0.2
+   dotspacemacs-which-key-delay 0.4
 
    ;; Which-key frame position. Possible values are `right', `bottom' and
    ;; `right-then-bottom'. right-then-bottom tries to display the frame to the
@@ -523,8 +550,8 @@ It should only modify the values of Spacemacs settings."
    ;; If set to `t', `relative' or `visual' then line numbers are enabled in all
    ;; `prog-mode' and `text-mode' derivatives. If set to `relative', line
    ;; numbers are relative. If set to `visual', line numbers are also relative,
-   ;; but lines are only visual lines are counted. For example, folded lines
-   ;; will not be counted and wrapped lines are counted as multiple lines.
+   ;; but only visual lines are counted. For example, folded lines will not be
+   ;; counted and wrapped lines are counted as multiple lines.
    ;; This variable can also be set to a property list for finer control:
    ;; '(:relative nil
    ;;   :visual nil
@@ -543,7 +570,8 @@ It should only modify the values of Spacemacs settings."
    ;; (default 'evil)
    dotspacemacs-folding-method 'evil
 
-   ;; If non-nil `smartparens-strict-mode' will be enabled in programming modes.
+   ;; If non-nil and `dotspacemacs-activate-smartparens-mode' is also non-nil,
+   ;; `smartparens-strict-mode' will be enabled in programming modes.
    ;; (default nil)
    dotspacemacs-smartparens-strict-mode t
 
@@ -603,6 +631,9 @@ It should only modify the values of Spacemacs settings."
    ;; (default nil - same as frame-title-format)
    dotspacemacs-icon-title-format nil
 
+   ;; Show trailing whitespace (default t)
+   dotspacemacs-show-trailing-whitespace t
+
    ;; Delete whitespace while saving buffer. Possible values are `all'
    ;; to aggressively delete empty line and long sequences of whitespace,
    ;; `trailing' to delete only the whitespace at end of lines, `changed' to
@@ -616,6 +647,9 @@ It should only modify the values of Spacemacs settings."
    ;; If it does deactivate it here.
    ;; (default t)
    dotspacemacs-use-clean-aindent-mode t
+
+   ;; Accept SPC as y for prompts if non-nil. (default nil)
+   dotspacemacs-use-SPC-as-y nil
 
    ;; If non-nil shift your number row to match the entered keyboard layout
    ;; (only in insert state). Currently supported keyboard layouts are:
@@ -635,7 +669,10 @@ It should only modify the values of Spacemacs settings."
 
    ;; If nil the home buffer shows the full path of agenda items
    ;; and todos. If non nil only the file name is shown.
-   dotspacemacs-home-shorten-agenda-source nil))
+   dotspacemacs-home-shorten-agenda-source nil
+
+   ;; If non-nil then byte-compile some of Spacemacs files.
+   dotspacemacs-byte-compile nil))
 
 (defun dotspacemacs/user-env ()
   "Environment variables setup.
@@ -657,6 +694,16 @@ If you are unsure, try setting them in `dotspacemacs/user-config' first."
    ;; Visual line navigation for textual modes
    (add-hook 'text-mode-hook 'spacemacs/toggle-visual-line-navigation-on)
 
+   (setq-default
+    theming-modifications
+    '((doom-one-light
+       (mode-line :height 0.92)
+       (mode-line-inactive :height 0.92))
+      (doom-gruvbox-light
+       (lsp-face-highlight-read :background nil :weight bold)
+       (command-log-command :foreground "firebrick")
+       (command-log-key :foreground "dark magenta"))))
+
   )
 
 (defun dotspacemacs/user-load ()
@@ -672,10 +719,309 @@ This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
+
+  ;;
+  ;; zprint formatter
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (add-to-list 'load-path (concat home-dir ".spacemacs.d/packages/zprint-mode/"))
+  (require 'zprint-mode)
+
+  (spacemacs|forall-clojure-modes m
+    (spacemacs/set-leader-keys-for-major-mode m
+      "-b" 'zprint
+      "-f" 'zprint-defun))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
   ;; Kaocha runner
-  (add-to-list 'load-path "~/.spacemacs.d/packages/kaocha-runner")
+  ;; see https://github.com/magnars/kaocha-runner.el for more configuration
+
+  (spacemacs|forall-clojure-modes m
+    (spacemacs/set-leader-keys-for-major-mode m
+      "kt" 'kaocha-runner-run-test-at-point
+      "kr" 'kaocha-runner-run-tests
+      "ka" 'kaocha-runner-run-all-tests
+      "kw" 'kaocha-runner-show-warnings
+      "kh" 'kaocha-runner-hide-windows))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; clj-decompiler
+  (spacemacs|forall-clojure-modes m
+    (spacemacs/set-leader-keys-for-major-mode m
+      "ed" 'clj-decompiler-decompile
+      "eD" 'clj-decompiler-disassemble))
+
+  ;; disable the annoying completion sometimes when hitting TAB
+  (setq tab-always-indent t)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; Clojure Data visualisation
+  ;;
+
+  ;; (defun rebl-interactive-eval (s bounds)
+  ;;   (let* ((reblized (concat "(cognitect.rebl/inspect " s ")")))
+  ;;     (cider-interactive-eval reblized nil bounds (cider--nrepl-pr-request-map))))
+
+  ;; (defun rebl-eval-cider-loc (f)
+  ;;   (rebl-interactive-eval (funcall f) (funcall f 'bounds)))
+
+  ;; (defun rebl-eval-last-sexp ()
+  ;;   (interactive)
+  ;;   (rebl-eval-cider-loc 'cider-last-sexp))
+
+  ;; (defun rebl-eval-defun-at-point ()
+  ;;   (interactive)
+  ;;   (rebl-eval-cider-loc 'cider-defun-at-point))
+
+  ;; (defun rebl-eval-list-at-point ()
+  ;;   (interactive)
+  ;;   (rebl-eval-cider-loc 'cider-list-at-point))
+
+  ;; (defun rebl-eval-sexp-at-point ()
+  ;;   (interactive)
+  ;;   (rebl-eval-cider-loc 'cider-sexp-at-point))
+
+  ;; (defun rebl-eval-region (start end)
+  ;;   (interactive "r")
+  ;;   (rebl-interactive-eval (buffer-substring start end) (list start end)))
+
+  (defvar me-hijack-cider-eval-wrap-form nil)
+
+  (require 'cider-mode)
+
+  (defun cider-interactive-eval (formin &optional callback bounds additional-params)
+  "Evaluate FORM and dispatch the response to CALLBACK.
+If the code to be evaluated comes from a buffer, it is preferred to use a
+nil FORM, and specify the code via the BOUNDS argument instead.
+This function is the main entry point in CIDER's interactive evaluation
+API.  Most other interactive eval functions should rely on this function.
+If CALLBACK is nil use `cider-interactive-eval-handler'.
+BOUNDS, if non-nil, is a list of two numbers marking the start and end
+positions of FORM in its buffer.
+ADDITIONAL-PARAMS is a map to be merged into the request message.
+If `cider-interactive-eval-override' is a function, call it with the same
+arguments and only proceed with evaluation if it returns nil."
+  (let* ((form  (or formin (apply #'buffer-substring-no-properties bounds)))
+         (form (if me-hijack-cider-eval-wrap-form
+                   (funcall me-hijack-cider-eval-wrap-form form)
+                 form))
+         (start (car-safe bounds))
+         (end   (car-safe (cdr-safe bounds))))
+    (when (and start end)
+      (remove-overlays start end 'cider-temporary t))
+    (unless (and cider-interactive-eval-override
+                 (functionp cider-interactive-eval-override)
+                 (funcall cider-interactive-eval-override form callback bounds))
+      (cider-map-repls :auto
+        (lambda (connection)
+          (cider--prep-interactive-eval form connection)
+          (cider-nrepl-request:eval
+           form
+           (or callback (cider-interactive-eval-handler nil bounds))
+           ;; always eval ns forms in the user namespace
+           ;; otherwise trying to eval ns form for the first time will produce an error
+           (if (cider-ns-form-p form) "user" (cider-current-ns))
+           (when start (line-number-at-pos start))
+           (when start (cider-column-number-at-pos start))
+           (seq-mapcat #'identity additional-params)
+           connection))))))
+
+  ;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;; PR
+  ;;;;;;;;;;;;
+
+  (defun cider--insert-closing-delimiters (code)
+  "Closes all open parenthesized or bracketed expressions."
+  (with-temp-buffer
+    (insert code)
+    (goto-char (point-max))
+    (let ((matching-delimiter nil))
+      (while (ignore-errors
+               (save-excursion
+                 (backward-up-list 1)
+                 (setq matching-delimiter (cdr (syntax-after (point)))))
+               t)
+        (insert-char matching-delimiter)))
+    (buffer-string)))
+
+(defun cider-eval-defun-up-to-point (&optional output-to-current-buffer)
+  "Evaluate the current toplevel form up to point.
+If invoked with OUTPUT-TO-CURRENT-BUFFER, print the result in the current
+buffer.  It constructs an expression to eval in the following manner:
+
+- It find the code between the point and the start of the toplevel expression;
+- It balances this bit of code by closing all open expressions;
+- It evaluates the resulting code using `cider-interactive-eval'."
+  (interactive "P")
+  (let* ((beg-of-defun (save-excursion (beginning-of-defun) (point)))
+         (code (buffer-substring-no-properties beg-of-defun (point)))
+         (code (cider--insert-closing-delimiters code)))
+    (cider-interactive-eval code
+                            (when output-to-current-buffer
+                              (cider-eval-print-handler))
+                            nil
+                            (cider--nrepl-pr-request-map))))
+
+  ;;;;;;;;;;;;
+  ;;;;;;;;;;;; PR
+  ;;;;;;;;;;;;;;;;;;;;;;
+
+  (defvar rebl-hijack-cider-eval nil)
+  (defvar rebl-enable-hijack-cider-eval nil)
+  (defun rebl-toggle-hijack-cider-eval ()
+    (interactive)
+    (let ((r (not rebl-enable-hijack-cider-eval)))
+      (message (format "Set REBL status: %s" r))
+      (setq rebl-enable-hijack-cider-eval r)))
+  (defvar rebl-cider-hide-eval-output nil)
+  (defvar rebl-cider-tap-to-portal nil)
+  (defvar rebl-cider-tap-to-reveal nil)
+
+  (defun rebl-hijack-cider-eval-wrap-form (form)
+    (let* ((form (if rebl-hijack-cider-eval (concat "(cognitect.rebl/inspect " form ")") form))
+           (form (if rebl-cider-tap-to-portal (concat "(let[result " form "](when-some[submit(resolve 'portal.api/submit)](submit result))result)") form))
+           (form (if rebl-cider-tap-to-reveal (concat "(let[result " form "](when-some[reveal(resolve 'dev/reveal)](reveal result))result)") form))
+           (form (if rebl-cider-hide-eval-output (concat "(do " form " :cider/hidden)") form)))
+      form))
+
+  (defun rebl-wrap-eval-main (cmd)
+    (let ((me-hijack-cider-eval-wrap-form 'rebl-hijack-cider-eval-wrap-form)
+          (rebl-hijack-cider-eval rebl-enable-hijack-cider-eval))
+      (funcall cmd)))
+
+  (defun rebl-wrap-eval-alt (cmd)
+    (let ((me-hijack-cider-eval-wrap-form 'rebl-hijack-cider-eval-wrap-form)
+          (rebl-cider-tap-to-reveal t)
+          (rebl-cider-tap-to-portal nil))
+      (funcall cmd)))
+
+  (defun rebl-eval-sexp-end-of-line ()
+    (interactive)
+    (rebl-wrap-eval-main 'spacemacs/cider-eval-sexp-end-of-line))
+
+  (defun rebl-open ()
+    (interactive)
+    (setq rebl-enable-hijack-cider-eval t)
+    (cider-nrepl-sync-request:eval
+     "((requiring-resolve 'cognitect.rebl/ui))"))
+
+  (defun vlaaad.reveal/open ()
+    (interactive)
+    (cider-nrepl-sync-request:eval
+     "(create-ns 'dev)(intern 'dev 'reveal((requiring-resolve 'vlaaad.reveal/ui)))"))
+
+  (defun vlaaad.reveal/clear ()
+    (interactive)
+    (cider-nrepl-sync-request:eval
+     "(when (resolve 'dev/reveal) (dev/reveal {:vlaaad.reveal/command '(clear-output)}))"))
+
+  (defun portal.api/open ()
+    (interactive)
+    (setq rebl-cider-tap-to-portal t)
+    (cider-nrepl-sync-request:eval
+     "(require 'portal.api) (add-tap #'portal.api/submit) (portal.api/open)"))
+
+  ;; (defun portal.api/clear ()
+  ;;   (interactive)
+  ;;   (cider-nrepl-sync-request:eval "(portal.api/clear)"))
+
+  ;; (defun portal.api/close ()
+  ;;   (interactive)
+  ;;   (cider-nrepl-sync-request:eval "(portal.api/close)"))
+
+  (defmacro rebl-make-cider-eval-fun (group quoted-cmd)
+    (let* ((cmd-sym (second quoted-cmd))
+           (rebl-sym (intern (concat "rebl-" group "-"
+                                     (substring (symbol-name cmd-sym) 5))))
+           (rebl-eval-sym (intern (concat "rebl-wrap-eval-" group))))
+      (list 'progn
+            (list 'defun rebl-sym '()
+                  (list 'interactive)
+                  (list rebl-eval-sym quoted-cmd))
+            (list 'quote rebl-sym))))
+
+  (spacemacs|forall-clojure-modes m
+    (spacemacs/set-leader-keys-for-major-mode m
+      "dp" 'portal.api/open
+      "dr" 'vlaaad.reveal/open
+      "eF" 'cider-eval-defun-up-to-point
+      ": o" 'rebl-toggle-hijack-cider-eval
+      "SPC e" (rebl-make-cider-eval-fun "main" 'cider-eval-last-sexp)
+      "SPC f" (rebl-make-cider-eval-fun "main" 'cider-eval-defun-at-point)
+      "SPC x" (rebl-make-cider-eval-fun "main" 'cider-eval-defun-up-to-point)
+      "SPC v" (rebl-make-cider-eval-fun "main" 'cider-eval-sexp-at-point)
+      "SPC (" (rebl-make-cider-eval-fun "main" 'cider-eval-list-at-point)
+      "SPC r" (rebl-make-cider-eval-fun "main" 'cider-eval-region)
+      "SPC V" (rebl-make-cider-eval-fun "main" 'cider-eval-sexp-up-to-point)
+      "v e" (rebl-make-cider-eval-fun "alt" 'cider-eval-last-sexp)
+      "v f" (rebl-make-cider-eval-fun "alt" 'cider-eval-defun-at-point)
+      "v x" (rebl-make-cider-eval-fun "alt" 'cider-eval-defun-up-to-point)
+      "v v" (rebl-make-cider-eval-fun "alt" 'cider-eval-sexp-at-point)
+      "v (" (rebl-make-cider-eval-fun "alt" 'cider-eval-list-at-point)
+      "v r" (rebl-make-cider-eval-fun "alt" 'cider-eval-region)
+      "v V" (rebl-make-cider-eval-fun "alt" 'cider-eval-sexp-up-to-point)
+      "SPC l" 'rebl-eval-sexp-end-of-line
+      "do" 'rebl-open))
+
+  (defun me-cider-wrap-eval-add-libs (form)
+    (concat "(require '[clojure.tools.deps.alpha.repl])"
+            "(clojure.tools.deps.alpha.repl/add-libs (quote " form "))"))
+
+  (defun me-cider-eval-list-add-libs ()
+    (interactive)
+    (let ((me-hijack-cider-eval-wrap-form 'me-cider-wrap-eval-add-libs))
+      (cider-eval-list-at-point)))
+
+  (spacemacs|forall-clojure-modes m
+    (spacemacs/set-leader-keys-for-major-mode m
+      "end" 'me-cider-eval-list-add-libs))
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; Clojure keybindings
+
+  ;; toggle reader macro sexp comment
+  ;; toggles the #_ characters at the start of an expression
+  (defun clojure-toggle-reader-comment-sexp ()
+    (interactive)
+    (let* ((point-pos1 (point)))
+      (evil-insert-line 0)
+      (let* ((point-pos2 (point))
+             (cmtstr "#_")
+             (cmtstr-len (length cmtstr))
+             (line-start (buffer-substring-no-properties point-pos2 (+ point-pos2 cmtstr-len)))
+             (point-movement (if (string= cmtstr line-start) -2 2))
+             (ending-point-pos (+ point-pos1 point-movement 1)))
+        (if (string= cmtstr line-start)
+            (delete-char cmtstr-len)
+          (insert cmtstr))
+        (goto-char ending-point-pos)))
+    (evil-normal-state))
+  ;;
+  ;; Assign keybinding to the toggle-reader-comment-sexp function
+  (spacemacs|forall-clojure-modes m
+    (spacemacs/set-leader-keys-for-major-mode m
+      "#" 'clojure-toggle-reader-comment-sexp))
+  ;;
+  ;;
+  ;; Toggle view of a clojure `(comment ,,,) block'
+  (defun clojure-hack/toggle-comment-block (arg)
+    "Close all top level (comment) forms. With universal arg, open all."
+    (interactive "P")
+    (save-excursion
+      (goto-char (point-min))
+      (while (search-forward-regexp "^(comment\\>" nil 'noerror)
+        (call-interactively
+         (if arg 'evil-open-fold
+           'evil-close-fold)))))
+  ;;
+  (evil-define-key 'normal clojure-mode-map
+    "zC" 'clojure-hack/toggle-comment-block
+    "zO" (lambda () (interactive) (clojure-hack/toggle-comment-block 'open)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
@@ -719,6 +1065,11 @@ before packages are loaded."
 
   (add-hook 'semantic-mode-hook #'et/semantic-remove-hooks)
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;
+  ;; Disable obnoxious auto-highlight-syntax
+  (remove-hook 'prog-mode-hook 'auto-highlight-symbol-mode)
+
   ;;;;;;;;;;
   ;;
   ;; rebindings
@@ -731,8 +1082,16 @@ before packages are loaded."
                   '(lambda ()
                      (interactive)
                      (insert "•")))
+  (define-key winum-keymap (kbd "M-0") nil)
+  (define-key winum-keymap (kbd "M-1") nil)
+  (define-key winum-keymap (kbd "M-2") nil)
   (define-key winum-keymap (kbd "M-3") nil)
+  (define-key winum-keymap (kbd "M-4") nil)
+  (define-key winum-keymap (kbd "M-5") nil)
+  (define-key winum-keymap (kbd "M-6") nil)
+  (define-key winum-keymap (kbd "M-7") nil)
   (define-key winum-keymap (kbd "M-8") nil)
+  (define-key winum-keymap (kbd "M-9") nil)
   (define-key global-map (kbd "<magnify-up>") nil)
   (define-key global-map (kbd "<magnify-down>") nil)
 
@@ -759,9 +1118,166 @@ before packages are loaded."
   (require 'clojure-mode)
 
   (define-clojure-indent
+    (defrecord '(2 nil nil (1)))
+    (deftype '(2 nil nil (1)))
+    (do-nil 0)
+    (do-true 0)
+    (do-false 0)
+    (cond! 0)
     (>defn :defn)
     (>defn- :defn)
-    (case-eval :defn))
+    (case-eval :defn)
+    (manifold.deferred/catch 0)
+    (let-flow 1)
+    (let-flow' 1)
+    (handler-case :defn)
+    (restart-case :defn)
+    (handler-bind 1)
+    (restart-bind 1)
+    (farolero.core/block 1)
+    (farolero.core/block* 1)
+    (farolero.core/return-from 1)
+    (tagbody 1)
+    (catching 1)
+    (match 1))
+  (setq clojure-special-arg-indent-factor 1)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Emacs text rendering optimizations
+  ;; https://200ok.ch/posts/2020-09-29_comprehensive_guide_on_handling_long_lines_in_emacs.html
+
+  ;; Only render text left to right
+  (setq-default bidi-paragraph-direction 'left-to-right)
+
+  ;; Disable Bidirectional Parentheses Algorithm
+  (if (version<= "27.1" emacs-version)
+      (setq bidi-inhibit-bpa t))
+
+  ;; Files with known long lines
+  ;; SPC f l to open files literally to disable most text processing
+
+  ;; So long mode when Emacs thinks a file would affect performance
+  (if (version<= "27.1" emacs-version)
+      (global-so-long-mode 1))
+
+  ;; End of: Emacs text rendering optimizations
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Override Spacemacs defaults
+  ;;
+  ;; Set new location for file bookmarks, SPC f b
+  ;; Default: ~/.emacs.d/.cache/bookmarks
+  (setq bookmark-default-file "~/.spacemacs.d/bookmarks")
+  ;;
+  ;; Set new location for recent save files
+  ;; Default: ~/.emacs.d/.cache/recentf
+  (setq recentf-save-file  "~/.spacemacs.d/recentf")
+  ;;
+  ;; native line numbers taking up lots of space?
+  (setq-default display-line-numbers-width nil)
+  ;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Eshell visual enhancements
+  ;;
+  ;; Add git status visual labels
+  ;;
+  (require 'dash)
+  (require 's)
+  ;;
+  (defmacro with-face (STR &rest PROPS)
+    "Return STR propertized with PROPS."
+    `(propertize ,STR 'face (list ,@PROPS)))
+  ;;
+  (defmacro esh-section (NAME ICON FORM &rest PROPS)
+    "Build eshell section NAME with ICON prepended to evaled FORM with PROPS."
+    `(setq ,NAME
+           (lambda () (when ,FORM
+                        (-> ,ICON
+                            (concat esh-section-delim ,FORM)
+                            (with-face ,@PROPS))))))
+  ;;
+  (defun esh-acc (acc x)
+    "Accumulator for evaluating and concatenating esh-sections."
+    (--if-let (funcall x)
+        (if (s-blank? acc)
+            it
+          (concat acc esh-sep it))
+      acc))
+  ;;
+  (defun esh-prompt-func ()
+    "Build `eshell-prompt-function'"
+    (concat esh-header
+            (-reduce-from 'esh-acc "" eshell-funcs)
+            "\n"
+            eshell-prompt-string))
+  ;;
+  ;;
+  ;; Unicode icons on Emacs
+  ;; `list-character-sets' and select unicode-bmp
+  ;; scroll through bitmaps list to find the one you want
+  ;; some bitmaps seem to change
+  ;;
+  (esh-section esh-dir
+               "\xf07c"  ;  (faicon folder)
+               (abbreviate-file-name (eshell/pwd))
+               '(:foreground "olive" :bold bold :underline t))
+  ;;
+  (esh-section esh-git
+               "\xf397"  ;  (git branch icon)
+               (magit-get-current-branch)
+               '(:foreground "maroon"))
+  ;;
+  ;; (esh-section esh-python
+  ;;              "\xe928"  ;  (python icon)
+  ;;              pyvenv-virtual-env-name)
+  ;;
+  (esh-section esh-clock
+               ""  ;  (clock icon)
+               (format-time-string "%H:%M" (current-time))
+               '(:foreground "forest green"))
+  ;;
+  ;; Below I implement a "prompt number" section
+  (setq esh-prompt-num 0)
+  (add-hook 'eshell-exit-hook (lambda () (setq esh-prompt-num 0)))
+  (advice-add 'eshell-send-input :before
+              (lambda (&rest args) (setq esh-prompt-num (incf esh-prompt-num))))
+  ;;
+  ;;
+  ;; "\xf0c9"  ;  (list icon)
+  (esh-section esh-num
+               "\x2130"  ;  ℰ (eshell icon)
+               (number-to-string esh-prompt-num)
+               '(:foreground "brown"))
+  ;;
+  ;; Separator between esh-sections
+  (setq esh-sep " ")  ; or " | "
+  ;;
+  ;; Separator between an esh-section icon and form
+  (setq esh-section-delim "")
+  ;;
+  ;; Eshell prompt header
+  (setq esh-header "\n ")  ; or "\n┌─"
+  ;;
+  ;; Eshell prompt regexp and string. Unless you are varying the prompt by eg.
+  ;; your login, these can be the same.
+  (setq eshell-prompt-regexp " \x2130 ")   ; or "└─> "
+  (setq eshell-prompt-string " \x2130 ")   ; or "└─> "
+  ;;
+  ;; Choose which eshell-funcs to enable
+  ;; (setq eshell-funcs (list esh-dir esh-git esh-python esh-clock esh-num))
+  ;; (setq eshell-funcs (list esh-dir esh-git esh-clock esh-num))
+  (setq eshell-funcs (list esh-dir esh-git))
+
+  ;; Enable the new eshell prompt
+  (setq eshell-prompt-function 'esh-prompt-func)
+
+  ;; End of Eshell
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;;;;;;;;;;
 
   ;; (setq cider-format-code-options '(("indents" ((">defn" (("inner" 1)))))))
 
@@ -849,6 +1365,7 @@ This function is called at the very end of Spacemacs initialization."
  '(all-the-icons-scale-factor 1.2)
  '(ansi-color-faces-vector
    [default bold shadow italic underline bold bold-italic bold])
+ '(auth-source-save-behavior nil)
  '(compilation-message-face 'default)
  '(compilation-scroll-output 'first-error)
  '(diary-entry-marker 'font-lock-variable-name-face)
@@ -913,12 +1430,39 @@ static char *gnus-pointer[] = {
  '(mouse-wheel-tilt-scroll t)
  '(ns-use-native-fullscreen t t)
  '(package-selected-packages
-   '(mvn maven-test-mode lsp-java dap-mode bui groovy-mode groovy-imports orgit-forge orgit org-rich-yank org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download org-contrib org org-cliplink org-brain gnuplot evil-org adoc-mode markup-faces magit-todos wgrep unicode-fonts ucs-utils font-utils smex ranger persistent-soft lsp-ivy ligature ivy-yasnippet ivy-xref ivy-purpose ivy-hydra ivy-avy graphviz-dot-mode counsel-projectile counsel-css counsel swiper ivy company-box frame-local doom-themes cyberpunk-theme flycheck-ledger evil-ledger ledger-mode stickyfunc-enhance srefactor vmd-mode mmm-mode markdown-toc gh-md cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
+   '(nix-mode company-nixos-options nixos-options zprint-mode yaml-mode lsp-dart flutter dart-server dart-mode mvn maven-test-mode lsp-java dap-mode bui groovy-mode groovy-imports orgit-forge orgit org-rich-yank org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download org-contrib org org-cliplink org-brain gnuplot evil-org adoc-mode markup-faces magit-todos wgrep unicode-fonts ucs-utils font-utils smex ranger persistent-soft lsp-ivy ligature ivy-yasnippet ivy-xref ivy-purpose ivy-hydra ivy-avy graphviz-dot-mode counsel-projectile counsel-css counsel swiper ivy company-box frame-local doom-themes cyberpunk-theme flycheck-ledger evil-ledger ledger-mode stickyfunc-enhance srefactor vmd-mode mmm-mode markdown-toc gh-md cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
  '(pdf-view-midnight-colors '("#b2b2b2" . "#292b2e"))
  '(pos-tip-background-color "#FFFACE")
  '(pos-tip-foreground-color "#272822")
  '(safe-local-variable-values
-   '((cider-clojure-cli-aliases . "test:cljs")
+   '((elisp-lint-indent-specs
+      (if-let* . 2)
+      (when-let* . 1)
+      (let* . defun)
+      (nrepl-dbind-response . 2)
+      (cider-save-marker . 1)
+      (cider-propertize-region . 1)
+      (cider-map-repls . 1)
+      (cider--jack-in . 1)
+      (cider--make-result-overlay . 1)
+      (insert-label . defun)
+      (insert-align-label . defun)
+      (insert-rect . defun)
+      (cl-defun . 2)
+      (with-parsed-tramp-file-name . 2)
+      (thread-first . 1)
+      (thread-last . 1))
+     (checkdoc-package-keywords-flag)
+     (cider-clojure-cli-aliases . "provided:test:datahike")
+     (cider-known-endpoints
+      ("electron-hub" "localhost" "5030"))
+     (cider-known-endpoints
+      ("electron-hub" "5030"))
+     (cider-known-endpoints quote
+                            (("electron-hub" "5030")))
+     (cider-known-endpoints
+      '(("electron-hub" "5030")))
+     (cider-clojure-cli-aliases . "test:cljs")
      (cider-clojure-cli-aliases . "test:dev:electron-hub")
      (cider-clojure-cli-aliases . "test:dev:workspaces")
      (cider-clojure-cli-aliases . "snoop:test:dev")
@@ -953,6 +1497,7 @@ static char *gnus-pointer[] = {
      (340 . "#1e7bda")
      (360 . "#da26ce")))
  '(vc-annotate-very-old-color "#da26ce")
+ '(warning-suppress-log-types '((comp)))
  '(weechat-color-list
    '(unspecified "#272822" "#3C3D37" "#F70057" "#F92672" "#86C30D" "#A6E22E" "#BEB244" "#E6DB74" "#40CAE4" "#66D9EF" "#FB35EA" "#FD5FF0" "#74DBCD" "#A1EFE4" "#F8F8F2" "#F8F8F0")))
 (custom-set-faces
@@ -960,5 +1505,6 @@ static char *gnus-pointer[] = {
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(mode-line ((t (:height 0.92))))
+ '(mode-line-inactive ((t (:height 0.92)))))
 )
