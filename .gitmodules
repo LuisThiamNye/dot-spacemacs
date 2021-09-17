@@ -4,3 +4,6 @@
 [submodule "kaocha-runner"]
 	path = packages/kaocha-runner
 	url = https://github.com/magnars/kaocha-runner.el.git
+[submodule "zprint-mode"]
+	path = packages/zprint-mode
+	url = https://github.com/LuisThiamNye/zprint-mode

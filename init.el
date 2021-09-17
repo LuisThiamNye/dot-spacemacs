@@ -4,7 +4,7 @@
 
 (setq home-dir
       (pcase system-type
-        ('darwin "/sdfUsers/luis/")
+        ('darwin "/Users/luis/")
         ('gnu/linux "/home/luis/")))
 
 (defun dotspacemacs/layers ()
