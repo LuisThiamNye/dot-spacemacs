@@ -4,6 +4,7 @@
 
 (setq home-dir
       (pcase system-type
+        ('windows-nt "~/")
         ('darwin "/Users/luis/")
         ('gnu/linux "/home/luis/")))
 
@@ -41,6 +42,7 @@ This function should only modify configuration layer settings."
      osx
 
      (shell :variables
+            terminal-here-windows-terminal-command '("pwsh.exe" "-c" "start" "pwsh.exe")
             shell-default-shell 'eshell
             spacemacs-vterm-history-file-location "~/.zsh_history")
 
@@ -143,6 +145,7 @@ This function should only modify configuration layer settings."
 
      (clojure :variables
               ;; clojure-backend 'cider
+              clojure-enable-clj-refactor t
 
               ;; https://docs.cider.mx/cider/1.1/usage/pretty_printing.html
               cider-print-fn 'fipp
@@ -159,11 +162,16 @@ This function should only modify configuration layer settings."
               cider-offer-to-open-cljs-app-in-browser nil
               cider-overlays-use-font-lock t
 
-              clojure-align-forms-automatically t
+              clojure-align-forms-automatically nil
               clojure-enable-fancify-symbols nil
               clojure-toplevel-inside-comment-form t
               ;;
               )
+     (rust :variables
+           lsp-rust-server 'rust-analyzer
+           rust-format-on-save t
+           rust-indent-offset 2
+           cargo-process-reload-on-modify t)
      (dart :variables
            lsp-dart-sdk-dir (concat home-dir "installations/flutter/bin/cache/dart-sdk/")
            lsp-dart-flutter-sdk-dir (concat home-dir "installations/flutter/")
@@ -177,6 +185,7 @@ This function should only modify configuration layer settings."
      asciidoc
      (markdown :variables markdown-live-preview-engine 'vmd)
 
+     python
      yaml
      java
      html
@@ -184,6 +193,7 @@ This function should only modify configuration layer settings."
      typescript
 
      finance
+     latex
 
      ;; Themes
 
@@ -195,7 +205,8 @@ This function should only modify configuration layer settings."
                          doom-modeline-minor-modes nil
                          doom-modeline-modal-icon nil)
      (unicode-fonts :variables
-                    unicode-fonts-enable-ligatures t
+                                        ; bug in 27.2 and older causes hang when opening file with ligatures
+                    unicode-fonts-enable-ligaftures t
                     unicode-fonts-ligature-modes '(prog-mode))
      theming
      ;;
@@ -405,8 +416,8 @@ It should only modify the values of Spacemacs settings."
    ;; Default font or prioritized list of fonts. The `:size' can be specified as
    ;; a non-negative integer (pixel size), or a floating-point (point size).
    ;; Point size is recommended, because it's device independent. (default 10.0)
-   dotspacemacs-default-font '("Fira Code"
-                               :size 12
+   dotspacemacs-default-font `("Fira Code"
+                               :size ,(if (eq system-type 'windows-nt) 13 12)
                                :weight normal
                                :width normal)
 
@@ -500,7 +511,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; If non-nil the frame is fullscreen when Emacs starts up. (default nil)
    ;; (Emacs 24.4+ only)
-   dotspacemacs-fullscreen-at-startup t
+   dotspacemacs-fullscreen-at-startup (when (eq system-type 'darwin) t)
 
    ;; If non-nil `spacemacs/toggle-fullscreen' will not use native fullscreen.
    ;; Use to disable fullscreen animations in OSX. (default nil)
@@ -1039,12 +1050,39 @@ buffer.  It constructs an expression to eval in the following manner:
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]app-output")
   (add-to-list 'lsp-file-watch-ignored "[/\\\\]yarn\\.lock")
 
+  ;;
+  ;; CIDER NREPL
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;; make repl more dynamic - download cider specific deps on connection to nrepl
+  ;; see https://lambdaisland.com/blog/2021-11-24-making-nrepl-cider-more-dynamic-2
+
+  ;; remove the previous one if necessary
+  ;; (pop 'cider-connected-hook)
+
+  (add-hook 'cider-connected-hook
+            (lambda ()
+              (cider-sync-tooling-eval
+               (parseedn-print-str
+                `(.addURL (loop
+                           [loader (.getContextClassLoader (Thread/currentThread))]
+                           (let [parent (.getParent loader)]
+                             (if (instance? clojure.lang.DynamicClassLoader parent)
+                                 (recur parent)
+                               loader)))
+                          (java.net.URL. ,(concat "file:" (cider-jar-find-or-fetch "cider" "cider-nrepl" cider-injected-nrepl-version))))))
+              (cider-add-cider-nrepl-middlewares)))
+
   ;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
   ;; Projectile
   ;;
   ;;
   (setq-default projectile-indexing-method 'hybrid)
+
+  (when (eq system-type 'windows-nt)
+    ;; requires https://lib.rs/crates/coreutils
+    (setq projectile-git-submodule-command "git submodule --quiet foreach 'echo $displaypath' | coreutils tr '\\n' '\\0'"))
 
   ;;;;;;
   ;; this does not work, needs a hook
@@ -1104,6 +1142,38 @@ buffer.  It constructs an expression to eval in the following manner:
   ;;
   (setq doom-gruvbox-dark-variant "medium")
   (setq doom-gruvbox-light-variant "hard")
+
+  ;; Fira Code Emacs workaround
+  (when (eq 'windows-nt system-type)
+    (let ((alist '((33 . ".\\(?:\\(?:==\\|!!\\)\\|[!=]\\)")
+                  (35 . ".\\(?:###\\|##\\|_(\\|[#(?[_{]\\)")
+                  (36 . ".\\(?:>\\)")
+                  (37 . ".\\(?:\\(?:%%\\)\\|%\\)")
+                  (38 . ".\\(?:\\(?:&&\\)\\|&\\)")
+                  (42 . ".\\(?:\\(?:\\*\\*/\\)\\|\\(?:\\*[*/]\\)\\|[*/>]\\)")
+                  (43 . ".\\(?:\\(?:\\+\\+\\)\\|[+>]\\)")
+                  ;; (45 . ".\\(?:\\(?:-[>-]\\|<<\\|>>\\)\\|[<>}~-]\\)")
+                                        ; fix attempt shape unibyte error
+                                        ;(46 . ".\\(?:\\(?:\\.[.<]\\)\\|[.=-]\\)")
+                  ;; (47 . ".\\(?:\\(?:\\*\\*\\|//\\|==\\)\\|[*/=>]\\)")
+                  (48 . ".\\(?:x[a-zA-Z]\\)")
+                  (58 . ".\\(?:::\\|[:=]\\)")
+                  (59 . ".\\(?:;;\\|;\\)")
+                  (60 . ".\\(?:\\(?:!--\\)\\|\\(?:~~\\|->\\|\\$>\\|\\*>\\|\\+>\\|--\\|<[<=-]\\|=[<=>]\\||>\\)\\|[*$+~/<=>|-]\\)")
+                  (61 . ".\\(?:\\(?:/=\\|:=\\|<<\\|=[=>]\\|>>\\)\\|[<=>~]\\)")
+                  (62 . ".\\(?:\\(?:=>\\|>[=>-]\\)\\|[=>-]\\)")
+                  (63 . ".\\(?:\\(\\?\\?\\)\\|[:=?]\\)")
+                  (91 . ".\\(?:]\\)")
+                  (92 . ".\\(?:\\(?:\\\\\\\\\\)\\|\\\\\\)")
+                  (94 . ".\\(?:=\\)")
+                  (119 . ".\\(?:ww\\)")
+                  (123 . ".\\(?:-\\)")
+                  (124 . ".\\(?:\\(?:|[=|]\\)\\|[=>|]\\)")
+                  (126 . ".\\(?:~>\\|~~\\|[>=@~-]\\)")
+                  )))
+     (dolist (char-regexp alist)
+       (set-char-table-range composition-function-table (car char-regexp)
+                             `([,(cdr char-regexp) 0 font-shape-gstring])))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
@@ -1322,6 +1392,13 @@ buffer.  It constructs an expression to eval in the following manner:
   ;; for testing:
   ;;(setq aggressive-indent-dont-indent-if nil)
 
+  ;;
+  ;; RUST
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (require 'toml-mode)
+  (add-hook 'toml-mode #'smartparens-mode)
+
   ;;;;;;;;;;;;;;;;;
   ;;
   ;; LEDGER
@@ -1435,7 +1512,8 @@ static char *gnus-pointer[] = {
  '(pos-tip-background-color "#FFFACE")
  '(pos-tip-foreground-color "#272822")
  '(safe-local-variable-values
-   '((elisp-lint-indent-specs
+   '((cider-clojure-cli-aliases . "test:dev")
+     (elisp-lint-indent-specs
       (if-let* . 2)
       (when-let* . 1)
       (let* . defun)
