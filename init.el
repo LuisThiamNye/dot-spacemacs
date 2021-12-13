@@ -206,7 +206,7 @@ This function should only modify configuration layer settings."
                          doom-modeline-modal-icon nil)
      (unicode-fonts :variables
                                         ; bug in 27.2 and older causes hang when opening file with ligatures
-                    unicode-fonts-enable-ligaftures t
+                    unicode-fonts-enable-ligaftures nil
                     unicode-fonts-ligature-modes '(prog-mode))
      theming
      ;;
@@ -1144,9 +1144,9 @@ buffer.  It constructs an expression to eval in the following manner:
   (setq doom-gruvbox-light-variant "hard")
 
   ;; Fira Code Emacs workaround
-  (when (eq 'windows-nt system-type)
+  (when nil ;(eq 'windows-nt system-type)
     (let ((alist '((33 . ".\\(?:\\(?:==\\|!!\\)\\|[!=]\\)")
-                  (35 . ".\\(?:###\\|##\\|_(\\|[#(?[_{]\\)")
+                  ;; (35 . ".\\(?:###\\|##\\|_(\\|[#(?[_{]\\)")
                   (36 . ".\\(?:>\\)")
                   (37 . ".\\(?:\\(?:%%\\)\\|%\\)")
                   (38 . ".\\(?:\\(?:&&\\)\\|&\\)")
@@ -1174,6 +1174,7 @@ buffer.  It constructs an expression to eval in the following manner:
      (dolist (char-regexp alist)
        (set-char-table-range composition-function-table (car char-regexp)
                              `([,(cdr char-regexp) 0 font-shape-gstring])))))
+
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;
@@ -1397,7 +1398,7 @@ buffer.  It constructs an expression to eval in the following manner:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (require 'toml-mode)
-  (add-hook 'toml-mode #'smartparens-mode)
+  (add-hook 'toml-mode #'turn-on-smartparens-mode)
 
   ;;;;;;;;;;;;;;;;;
   ;;
