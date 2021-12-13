@@ -221,7 +221,9 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(kaocha-runner clj-decompiler)
+   dotspacemacs-additional-packages '(kaocha-runner clj-decompiler
+                                      (cider :location (recipe :fetcher github
+                                                               :repo "clojure-emacs/cider")))
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -839,46 +841,6 @@ arguments and only proceed with evaluation if it returns nil."
            (when start (cider-column-number-at-pos start))
            (seq-mapcat #'identity additional-params)
            connection))))))
-
-  ;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;;;;;; PR
-  ;;;;;;;;;;;;
-
-  (defun cider--insert-closing-delimiters (code)
-  "Closes all open parenthesized or bracketed expressions."
-  (with-temp-buffer
-    (insert code)
-    (goto-char (point-max))
-    (let ((matching-delimiter nil))
-      (while (ignore-errors
-               (save-excursion
-                 (backward-up-list 1)
-                 (setq matching-delimiter (cdr (syntax-after (point)))))
-               t)
-        (insert-char matching-delimiter)))
-    (buffer-string)))
-
-(defun cider-eval-defun-up-to-point (&optional output-to-current-buffer)
-  "Evaluate the current toplevel form up to point.
-If invoked with OUTPUT-TO-CURRENT-BUFFER, print the result in the current
-buffer.  It constructs an expression to eval in the following manner:
-
-- It find the code between the point and the start of the toplevel expression;
-- It balances this bit of code by closing all open expressions;
-- It evaluates the resulting code using `cider-interactive-eval'."
-  (interactive "P")
-  (let* ((beg-of-defun (save-excursion (beginning-of-defun) (point)))
-         (code (buffer-substring-no-properties beg-of-defun (point)))
-         (code (cider--insert-closing-delimiters code)))
-    (cider-interactive-eval code
-                            (when output-to-current-buffer
-                              (cider-eval-print-handler))
-                            nil
-                            (cider--nrepl-pr-request-map))))
-
-  ;;;;;;;;;;;;
-  ;;;;;;;;;;;; PR
-  ;;;;;;;;;;;;;;;;;;;;;;
 
   (defvar rebl-hijack-cider-eval nil)
   (defvar rebl-enable-hijack-cider-eval nil)
