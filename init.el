@@ -8,6 +8,9 @@
         ('darwin "/Users/luis/")
         ('gnu/linux "/home/luis/")))
 
+(defun dsppath (path)
+  (expand-file-name path dotspacemacs-directory))
+
 (defun dotspacemacs/layers ()
   "Layer configuration:
 This function should only modify configuration layer settings."
@@ -34,7 +37,7 @@ This function should only modify configuration layer settings."
 
    ;; List of additional paths where to look for configuration layers.
    ;; Paths must have a trailing slash (i.e. `~/.mycontribs/')
-   dotspacemacs-configuration-layer-path '()
+   dotspacemacs-configuration-layer-path `(,(expand-file-name "layers/" dotspacemacs-directory))
 
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
@@ -86,6 +89,7 @@ This function should only modify configuration layer settings."
                       version-control-diff-tool 'diff-hl
                       version-control-global-margin t)
      (treemacs :variables
+               treemacs-collapse-dirs 7
                treemacs-indentation 1
                treemacs-width 28
                ;; Efficient use of space in treemacs-lsp display
@@ -172,12 +176,14 @@ This function should only modify configuration layer settings."
            rust-format-on-save t
            rust-indent-offset 2
            cargo-process-reload-on-modify t)
+     carp
      (dart :variables
            lsp-dart-sdk-dir (concat home-dir "installations/flutter/bin/cache/dart-sdk/")
            lsp-dart-flutter-sdk-dir (concat home-dir "installations/flutter/")
            flutter-sdk-path (concat home-dir "installations/flutter/"))
      emacs-lisp
      semantic ;; provides elisp formatting:
+     zig
 
      (nixos :variables nixos-format-on-save t)
 
@@ -205,8 +211,8 @@ This function should only modify configuration layer settings."
                          doom-modeline-minor-modes nil
                          doom-modeline-modal-icon nil)
      (unicode-fonts :variables
-                                        ; bug in 27.2 and older causes hang when opening file with ligatures
-                    unicode-fonts-enable-ligaftures nil
+                    ;; bug in 27.2 and older causes hang when opening file with ligatures
+                    unicode-fonts-enable-ligatures (not (eq system-type 'windows-nt))
                     unicode-fonts-ligature-modes '(prog-mode))
      theming
      ;;
@@ -221,9 +227,17 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(kaocha-runner clj-decompiler
-                                      (cider :location (recipe :fetcher github
-                                                               :repo "clojure-emacs/cider")))
+   dotspacemacs-additional-packages `(kaocha-runner
+                                      clj-decompiler
+                                      ;; (cider :location
+                                      ;;        ;; (recipe :fetcher github
+                                      ;;        ;;         :repo "clojure-emacs/cider")
+                                      ;;        ;; (recipe :fetcher file
+                                      ;;        ;;         :path "/Volumes/House/lib/cider")
+                                      ;;        local ; symlink .emacs.d/layers/+lang/clojure/local/cider
+                                      ;;        )
+                                      (carp-mode :location ,(expand-file-name "packages/carp/" dotspacemacs-directory))
+                                      (zprint-mode :location ,(expand-file-name "packages/zprint-mode/" dotspacemacs-directory)))
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -247,7 +261,7 @@ This function is called at the very beginning of Spacemacs startup,
 before layer configuration.
 It should only modify the values of Spacemacs settings."
   ;; This setq-default sexp is an exhaustive list of all the supported
-  ;; spacemacs settings.
+  ;; spacemacs settings
   (setq-default
    ;; If non-nil then enable support for the portable dumper. You'll need
    ;; to compile Emacs 27 from source following the instructions in file
@@ -384,22 +398,21 @@ It should only modify the values of Spacemacs settings."
    ;; Press `SPC T n' to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(doom-gruvbox
-                         doom-Iosvkem
-                         doom-molokai
-                         doom-monokai-pro
+                         ;; doom-Iosvkem
+                         ;; doom-molokai
+                         ;; doom-monokai-pro
 
-                         doom-monokai-spectrum
+                         ;; doom-monokai-spectrum
                          doom-dark+
-                         doom-vibrant
-                         doom-challenger-deep
-                         cyberpunk
-                         doom-laserwave
+                         ;; doom-vibrant
+                         ;; doom-challenger-deep
+                         ;; doom-laserwave
                          ;; light
                          doom-one-light
 
-                         doom-opera-light
-                         doom-acario-light
-                         doom-solarized-light
+                         ;; doom-opera-light
+                         ;; doom-acario-light
+                         ;; doom-solarized-light
                          doom-gruvbox-light)
 
    ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
@@ -685,7 +698,8 @@ It should only modify the values of Spacemacs settings."
    dotspacemacs-home-shorten-agenda-source nil
 
    ;; If non-nil then byte-compile some of Spacemacs files.
-   dotspacemacs-byte-compile nil))
+   ;; Luis note: might have problems with eager macroexpansion failing
+   dotspacemacs-byte-compile t))
 
 (defun dotspacemacs/user-env ()
   "Environment variables setup.
@@ -701,23 +715,7 @@ This function is called immediately after `dotspacemacs/init', before layer
 configuration.
 It is mostly for variables that should be set before packages are loaded.
 If you are unsure, try setting them in `dotspacemacs/user-config' first."
-
-  ;; (setq cljr-ignore-analyzer-errors nil)
-
-   ;; Visual line navigation for textual modes
-   (add-hook 'text-mode-hook 'spacemacs/toggle-visual-line-navigation-on)
-
-   (setq-default
-    theming-modifications
-    '((doom-one-light
-       (mode-line :height 0.92)
-       (mode-line-inactive :height 0.92))
-      (doom-gruvbox-light
-       (lsp-face-highlight-read :background nil :weight bold)
-       (command-log-command :foreground "firebrick")
-       (command-log-key :foreground "dark magenta"))))
-
-  )
+  (load (dsppath "user-init.el")))
 
 (defun dotspacemacs/user-load ()
   "Library to load while dumping.
@@ -732,663 +730,7 @@ This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
-
-  ;;
-  ;; zprint formatter
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (add-to-list 'load-path (concat home-dir ".spacemacs.d/packages/zprint-mode/"))
-  (require 'zprint-mode)
-
-  (spacemacs|forall-clojure-modes m
-    (spacemacs/set-leader-keys-for-major-mode m
-      "-b" 'zprint
-      "-f" 'zprint-defun))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; Kaocha runner
-  ;; see https://github.com/magnars/kaocha-runner.el for more configuration
-
-  (spacemacs|forall-clojure-modes m
-    (spacemacs/set-leader-keys-for-major-mode m
-      "kt" 'kaocha-runner-run-test-at-point
-      "kr" 'kaocha-runner-run-tests
-      "ka" 'kaocha-runner-run-all-tests
-      "kw" 'kaocha-runner-show-warnings
-      "kh" 'kaocha-runner-hide-windows))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; clj-decompiler
-  (spacemacs|forall-clojure-modes m
-    (spacemacs/set-leader-keys-for-major-mode m
-      "ed" 'clj-decompiler-decompile
-      "eD" 'clj-decompiler-disassemble))
-
-  ;; disable the annoying completion sometimes when hitting TAB
-  (setq tab-always-indent t)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; Clojure Data visualisation
-  ;;
-
-  ;; (defun rebl-interactive-eval (s bounds)
-  ;;   (let* ((reblized (concat "(cognitect.rebl/inspect " s ")")))
-  ;;     (cider-interactive-eval reblized nil bounds (cider--nrepl-pr-request-map))))
-
-  ;; (defun rebl-eval-cider-loc (f)
-  ;;   (rebl-interactive-eval (funcall f) (funcall f 'bounds)))
-
-  ;; (defun rebl-eval-last-sexp ()
-  ;;   (interactive)
-  ;;   (rebl-eval-cider-loc 'cider-last-sexp))
-
-  ;; (defun rebl-eval-defun-at-point ()
-  ;;   (interactive)
-  ;;   (rebl-eval-cider-loc 'cider-defun-at-point))
-
-  ;; (defun rebl-eval-list-at-point ()
-  ;;   (interactive)
-  ;;   (rebl-eval-cider-loc 'cider-list-at-point))
-
-  ;; (defun rebl-eval-sexp-at-point ()
-  ;;   (interactive)
-  ;;   (rebl-eval-cider-loc 'cider-sexp-at-point))
-
-  ;; (defun rebl-eval-region (start end)
-  ;;   (interactive "r")
-  ;;   (rebl-interactive-eval (buffer-substring start end) (list start end)))
-
-  (defvar me-hijack-cider-eval-wrap-form nil)
-
-  (require 'cider-mode)
-
-  (defun cider-interactive-eval (formin &optional callback bounds additional-params)
-  "Evaluate FORM and dispatch the response to CALLBACK.
-If the code to be evaluated comes from a buffer, it is preferred to use a
-nil FORM, and specify the code via the BOUNDS argument instead.
-This function is the main entry point in CIDER's interactive evaluation
-API.  Most other interactive eval functions should rely on this function.
-If CALLBACK is nil use `cider-interactive-eval-handler'.
-BOUNDS, if non-nil, is a list of two numbers marking the start and end
-positions of FORM in its buffer.
-ADDITIONAL-PARAMS is a map to be merged into the request message.
-If `cider-interactive-eval-override' is a function, call it with the same
-arguments and only proceed with evaluation if it returns nil."
-  (let* ((form  (or formin (apply #'buffer-substring-no-properties bounds)))
-         (form (if me-hijack-cider-eval-wrap-form
-                   (funcall me-hijack-cider-eval-wrap-form form)
-                 form))
-         (start (car-safe bounds))
-         (end   (car-safe (cdr-safe bounds))))
-    (when (and start end)
-      (remove-overlays start end 'cider-temporary t))
-    (unless (and cider-interactive-eval-override
-                 (functionp cider-interactive-eval-override)
-                 (funcall cider-interactive-eval-override form callback bounds))
-      (cider-map-repls :auto
-        (lambda (connection)
-          (cider--prep-interactive-eval form connection)
-          (cider-nrepl-request:eval
-           form
-           (or callback (cider-interactive-eval-handler nil bounds))
-           ;; always eval ns forms in the user namespace
-           ;; otherwise trying to eval ns form for the first time will produce an error
-           (if (cider-ns-form-p form) "user" (cider-current-ns))
-           (when start (line-number-at-pos start))
-           (when start (cider-column-number-at-pos start))
-           (seq-mapcat #'identity additional-params)
-           connection))))))
-
-  (defvar rebl-hijack-cider-eval nil)
-  (defvar rebl-enable-hijack-cider-eval nil)
-  (defun rebl-toggle-hijack-cider-eval ()
-    (interactive)
-    (let ((r (not rebl-enable-hijack-cider-eval)))
-      (message (format "Set REBL status: %s" r))
-      (setq rebl-enable-hijack-cider-eval r)))
-  (defvar rebl-cider-hide-eval-output nil)
-  (defvar rebl-cider-tap-to-portal nil)
-  (defvar rebl-cider-tap-to-reveal nil)
-
-  (defun rebl-hijack-cider-eval-wrap-form (form)
-    (let* ((form (if rebl-hijack-cider-eval (concat "(cognitect.rebl/inspect " form ")") form))
-           (form (if rebl-cider-tap-to-portal (concat "(let[result " form "](when-some[submit(resolve 'portal.api/submit)](submit result))result)") form))
-           (form (if rebl-cider-tap-to-reveal (concat "(let[result " form "](when-some[reveal(resolve 'dev/reveal)](reveal result))result)") form))
-           (form (if rebl-cider-hide-eval-output (concat "(do " form " :cider/hidden)") form)))
-      form))
-
-  (defun rebl-wrap-eval-main (cmd)
-    (let ((me-hijack-cider-eval-wrap-form 'rebl-hijack-cider-eval-wrap-form)
-          (rebl-hijack-cider-eval rebl-enable-hijack-cider-eval))
-      (funcall cmd)))
-
-  (defun rebl-wrap-eval-alt (cmd)
-    (let ((me-hijack-cider-eval-wrap-form 'rebl-hijack-cider-eval-wrap-form)
-          (rebl-cider-tap-to-reveal t)
-          (rebl-cider-tap-to-portal nil))
-      (funcall cmd)))
-
-  (defun rebl-eval-sexp-end-of-line ()
-    (interactive)
-    (rebl-wrap-eval-main 'spacemacs/cider-eval-sexp-end-of-line))
-
-  (defun rebl-open ()
-    (interactive)
-    (setq rebl-enable-hijack-cider-eval t)
-    (cider-nrepl-sync-request:eval
-     "((requiring-resolve 'cognitect.rebl/ui))"))
-
-  (defun vlaaad.reveal/open ()
-    (interactive)
-    (cider-nrepl-sync-request:eval
-     "(create-ns 'dev)(intern 'dev 'reveal((requiring-resolve 'vlaaad.reveal/ui)))"))
-
-  (defun vlaaad.reveal/clear ()
-    (interactive)
-    (cider-nrepl-sync-request:eval
-     "(when (resolve 'dev/reveal) (dev/reveal {:vlaaad.reveal/command '(clear-output)}))"))
-
-  (defun portal.api/open ()
-    (interactive)
-    (setq rebl-cider-tap-to-portal t)
-    (cider-nrepl-sync-request:eval
-     "(require 'portal.api) (add-tap #'portal.api/submit) (portal.api/open)"))
-
-  ;; (defun portal.api/clear ()
-  ;;   (interactive)
-  ;;   (cider-nrepl-sync-request:eval "(portal.api/clear)"))
-
-  ;; (defun portal.api/close ()
-  ;;   (interactive)
-  ;;   (cider-nrepl-sync-request:eval "(portal.api/close)"))
-
-  (defmacro rebl-make-cider-eval-fun (group quoted-cmd)
-    (let* ((cmd-sym (second quoted-cmd))
-           (rebl-sym (intern (concat "rebl-" group "-"
-                                     (substring (symbol-name cmd-sym) 5))))
-           (rebl-eval-sym (intern (concat "rebl-wrap-eval-" group))))
-      (list 'progn
-            (list 'defun rebl-sym '()
-                  (list 'interactive)
-                  (list rebl-eval-sym quoted-cmd))
-            (list 'quote rebl-sym))))
-
-  (spacemacs|forall-clojure-modes m
-    (spacemacs/set-leader-keys-for-major-mode m
-      "dp" 'portal.api/open
-      "dr" 'vlaaad.reveal/open
-      "eF" 'cider-eval-defun-up-to-point
-      ": o" 'rebl-toggle-hijack-cider-eval
-      "SPC e" (rebl-make-cider-eval-fun "main" 'cider-eval-last-sexp)
-      "SPC f" (rebl-make-cider-eval-fun "main" 'cider-eval-defun-at-point)
-      "SPC x" (rebl-make-cider-eval-fun "main" 'cider-eval-defun-up-to-point)
-      "SPC v" (rebl-make-cider-eval-fun "main" 'cider-eval-sexp-at-point)
-      "SPC (" (rebl-make-cider-eval-fun "main" 'cider-eval-list-at-point)
-      "SPC r" (rebl-make-cider-eval-fun "main" 'cider-eval-region)
-      "SPC V" (rebl-make-cider-eval-fun "main" 'cider-eval-sexp-up-to-point)
-      "v e" (rebl-make-cider-eval-fun "alt" 'cider-eval-last-sexp)
-      "v f" (rebl-make-cider-eval-fun "alt" 'cider-eval-defun-at-point)
-      "v x" (rebl-make-cider-eval-fun "alt" 'cider-eval-defun-up-to-point)
-      "v v" (rebl-make-cider-eval-fun "alt" 'cider-eval-sexp-at-point)
-      "v (" (rebl-make-cider-eval-fun "alt" 'cider-eval-list-at-point)
-      "v r" (rebl-make-cider-eval-fun "alt" 'cider-eval-region)
-      "v V" (rebl-make-cider-eval-fun "alt" 'cider-eval-sexp-up-to-point)
-      "SPC l" 'rebl-eval-sexp-end-of-line
-      "do" 'rebl-open))
-
-  (defun me-cider-wrap-eval-add-libs (form)
-    (concat "(require '[clojure.tools.deps.alpha.repl])"
-            "(clojure.tools.deps.alpha.repl/add-libs (quote " form "))"))
-
-  (defun me-cider-eval-list-add-libs ()
-    (interactive)
-    (let ((me-hijack-cider-eval-wrap-form 'me-cider-wrap-eval-add-libs))
-      (cider-eval-list-at-point)))
-
-  (spacemacs|forall-clojure-modes m
-    (spacemacs/set-leader-keys-for-major-mode m
-      "end" 'me-cider-eval-list-add-libs))
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; Clojure keybindings
-
-  ;; toggle reader macro sexp comment
-  ;; toggles the #_ characters at the start of an expression
-  (defun clojure-toggle-reader-comment-sexp ()
-    (interactive)
-    (let* ((point-pos1 (point)))
-      (evil-insert-line 0)
-      (let* ((point-pos2 (point))
-             (cmtstr "#_")
-             (cmtstr-len (length cmtstr))
-             (line-start (buffer-substring-no-properties point-pos2 (+ point-pos2 cmtstr-len)))
-             (point-movement (if (string= cmtstr line-start) -2 2))
-             (ending-point-pos (+ point-pos1 point-movement 1)))
-        (if (string= cmtstr line-start)
-            (delete-char cmtstr-len)
-          (insert cmtstr))
-        (goto-char ending-point-pos)))
-    (evil-normal-state))
-  ;;
-  ;; Assign keybinding to the toggle-reader-comment-sexp function
-  (spacemacs|forall-clojure-modes m
-    (spacemacs/set-leader-keys-for-major-mode m
-      "#" 'clojure-toggle-reader-comment-sexp))
-  ;;
-  ;;
-  ;; Toggle view of a clojure `(comment ,,,) block'
-  (defun clojure-hack/toggle-comment-block (arg)
-    "Close all top level (comment) forms. With universal arg, open all."
-    (interactive "P")
-    (save-excursion
-      (goto-char (point-min))
-      (while (search-forward-regexp "^(comment\\>" nil 'noerror)
-        (call-interactively
-         (if arg 'evil-open-fold
-           'evil-close-fold)))))
-  ;;
-  (evil-define-key 'normal clojure-mode-map
-    "zC" 'clojure-hack/toggle-comment-block
-    "zO" (lambda () (interactive) (clojure-hack/toggle-comment-block 'open)))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; LSP
-  ;;
-  (require 'lsp-mode)
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.clj-kondo")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.shadow-cljs")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.lsp")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]\\.DS_Store")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]resources[/\\\\]public")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]public[/\\\\]css")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]public[/\\\\]js")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]dist[/\\\\]")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]app-output")
-  (add-to-list 'lsp-file-watch-ignored "[/\\\\]yarn\\.lock")
-
-  ;;
-  ;; CIDER NREPL
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ;; make repl more dynamic - download cider specific deps on connection to nrepl
-  ;; see https://lambdaisland.com/blog/2021-11-24-making-nrepl-cider-more-dynamic-2
-
-  ;; remove the previous one if necessary
-  ;; (pop 'cider-connected-hook)
-
-  (add-hook 'cider-connected-hook
-            (lambda ()
-              (cider-sync-tooling-eval
-               (parseedn-print-str
-                `(.addURL (loop
-                           [loader (.getContextClassLoader (Thread/currentThread))]
-                           (let [parent (.getParent loader)]
-                             (if (instance? clojure.lang.DynamicClassLoader parent)
-                                 (recur parent)
-                               loader)))
-                          (java.net.URL. ,(concat "file:" (cider-jar-find-or-fetch "cider" "cider-nrepl" cider-injected-nrepl-version))))))
-              (cider-add-cider-nrepl-middlewares)))
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; Projectile
-  ;;
-  ;;
-  (setq-default projectile-indexing-method 'hybrid)
-
-  (when (eq system-type 'windows-nt)
-    ;; requires https://lib.rs/crates/coreutils
-    (setq projectile-git-submodule-command "git submodule --quiet foreach 'echo $displaypath' | coreutils tr '\\n' '\\0'"))
-
-  ;;;;;;
-  ;; this does not work, needs a hook
-  ;; (spacemacs/toggle-truncate-lines-on)
-
-  ;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; Solve the problem of deadly slow autocomplete when using semantic mode
-  ;; https://github.com/syl20bnr/spacemacs/issues/1907
-  ;; https://github.com/syl20bnr/spacemacs/issues/11058#issuecomment-407269954
-  (defun et/semantic-remove-hooks ()
-    (remove-hook 'completion-at-point-functions
-                 'semantic-analyze-completion-at-point-function)
-    (remove-hook 'completion-at-point-functions
-                 'semantic-analyze-notc-completion-at-point-function)
-    (remove-hook 'completion-at-point-functions
-                 'semantic-analyze-nolongprefix-completion-at-point-function))
-
-  (add-hook 'semantic-mode-hook #'et/semantic-remove-hooks)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; Disable obnoxious auto-highlight-syntax
-  (remove-hook 'prog-mode-hook 'auto-highlight-symbol-mode)
-
-  ;;;;;;;;;;
-  ;;
-  ;; rebindings
-  ;;
-  (global-set-key (kbd "M-3")
-                  '(lambda ()
-                     (interactive)
-                     (insert "£")))
-  (global-set-key (kbd "M-8")
-                  '(lambda ()
-                     (interactive)
-                     (insert "•")))
-  (define-key winum-keymap (kbd "M-0") nil)
-  (define-key winum-keymap (kbd "M-1") nil)
-  (define-key winum-keymap (kbd "M-2") nil)
-  (define-key winum-keymap (kbd "M-3") nil)
-  (define-key winum-keymap (kbd "M-4") nil)
-  (define-key winum-keymap (kbd "M-5") nil)
-  (define-key winum-keymap (kbd "M-6") nil)
-  (define-key winum-keymap (kbd "M-7") nil)
-  (define-key winum-keymap (kbd "M-8") nil)
-  (define-key winum-keymap (kbd "M-9") nil)
-  (define-key global-map (kbd "<magnify-up>") nil)
-  (define-key global-map (kbd "<magnify-down>") nil)
-
-  (require 'treemacs-mode)
-  (define-key treemacs-mode-map [mouse-1] #'treemacs-single-click-expand-action)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; THEME
-  ;;
-  (setq doom-gruvbox-dark-variant "medium")
-  (setq doom-gruvbox-light-variant "hard")
-
-  ;; Fira Code Emacs workaround
-  (when nil ;(eq 'windows-nt system-type)
-    (let ((alist '((33 . ".\\(?:\\(?:==\\|!!\\)\\|[!=]\\)")
-                  ;; (35 . ".\\(?:###\\|##\\|_(\\|[#(?[_{]\\)")
-                  (36 . ".\\(?:>\\)")
-                  (37 . ".\\(?:\\(?:%%\\)\\|%\\)")
-                  (38 . ".\\(?:\\(?:&&\\)\\|&\\)")
-                  (42 . ".\\(?:\\(?:\\*\\*/\\)\\|\\(?:\\*[*/]\\)\\|[*/>]\\)")
-                  (43 . ".\\(?:\\(?:\\+\\+\\)\\|[+>]\\)")
-                  ;; (45 . ".\\(?:\\(?:-[>-]\\|<<\\|>>\\)\\|[<>}~-]\\)")
-                                        ; fix attempt shape unibyte error
-                                        ;(46 . ".\\(?:\\(?:\\.[.<]\\)\\|[.=-]\\)")
-                  ;; (47 . ".\\(?:\\(?:\\*\\*\\|//\\|==\\)\\|[*/=>]\\)")
-                  (48 . ".\\(?:x[a-zA-Z]\\)")
-                  (58 . ".\\(?:::\\|[:=]\\)")
-                  (59 . ".\\(?:;;\\|;\\)")
-                  (60 . ".\\(?:\\(?:!--\\)\\|\\(?:~~\\|->\\|\\$>\\|\\*>\\|\\+>\\|--\\|<[<=-]\\|=[<=>]\\||>\\)\\|[*$+~/<=>|-]\\)")
-                  (61 . ".\\(?:\\(?:/=\\|:=\\|<<\\|=[=>]\\|>>\\)\\|[<=>~]\\)")
-                  (62 . ".\\(?:\\(?:=>\\|>[=>-]\\)\\|[=>-]\\)")
-                  (63 . ".\\(?:\\(\\?\\?\\)\\|[:=?]\\)")
-                  (91 . ".\\(?:]\\)")
-                  (92 . ".\\(?:\\(?:\\\\\\\\\\)\\|\\\\\\)")
-                  (94 . ".\\(?:=\\)")
-                  (119 . ".\\(?:ww\\)")
-                  (123 . ".\\(?:-\\)")
-                  (124 . ".\\(?:\\(?:|[=|]\\)\\|[=>|]\\)")
-                  (126 . ".\\(?:~>\\|~~\\|[>=@~-]\\)")
-                  )))
-     (dolist (char-regexp alist)
-       (set-char-table-range composition-function-table (car char-regexp)
-                             `([,(cdr char-regexp) 0 font-shape-gstring])))))
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;
-  ;; Editing
-  ;;
-
-  (spacemacs/toggle-evil-safe-lisp-structural-editing-on-register-hooks)
-  ;;;;;;;;;;;;
-  ;;
-  ;; Indentation
-  ;;
-  (require 'clojure-mode)
-
-  (define-clojure-indent
-    (defrecord '(2 nil nil (1)))
-    (deftype '(2 nil nil (1)))
-    (do-nil 0)
-    (do-true 0)
-    (do-false 0)
-    (cond! 0)
-    (>defn :defn)
-    (>defn- :defn)
-    (case-eval :defn)
-    (manifold.deferred/catch 0)
-    (let-flow 1)
-    (let-flow' 1)
-    (handler-case :defn)
-    (restart-case :defn)
-    (handler-bind 1)
-    (restart-bind 1)
-    (farolero.core/block 1)
-    (farolero.core/block* 1)
-    (farolero.core/return-from 1)
-    (tagbody 1)
-    (catching 1)
-    (match 1))
-  (setq clojure-special-arg-indent-factor 1)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Emacs text rendering optimizations
-  ;; https://200ok.ch/posts/2020-09-29_comprehensive_guide_on_handling_long_lines_in_emacs.html
-
-  ;; Only render text left to right
-  (setq-default bidi-paragraph-direction 'left-to-right)
-
-  ;; Disable Bidirectional Parentheses Algorithm
-  (if (version<= "27.1" emacs-version)
-      (setq bidi-inhibit-bpa t))
-
-  ;; Files with known long lines
-  ;; SPC f l to open files literally to disable most text processing
-
-  ;; So long mode when Emacs thinks a file would affect performance
-  (if (version<= "27.1" emacs-version)
-      (global-so-long-mode 1))
-
-  ;; End of: Emacs text rendering optimizations
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Override Spacemacs defaults
-  ;;
-  ;; Set new location for file bookmarks, SPC f b
-  ;; Default: ~/.emacs.d/.cache/bookmarks
-  (setq bookmark-default-file "~/.spacemacs.d/bookmarks")
-  ;;
-  ;; Set new location for recent save files
-  ;; Default: ~/.emacs.d/.cache/recentf
-  (setq recentf-save-file  "~/.spacemacs.d/recentf")
-  ;;
-  ;; native line numbers taking up lots of space?
-  (setq-default display-line-numbers-width nil)
-  ;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Eshell visual enhancements
-  ;;
-  ;; Add git status visual labels
-  ;;
-  (require 'dash)
-  (require 's)
-  ;;
-  (defmacro with-face (STR &rest PROPS)
-    "Return STR propertized with PROPS."
-    `(propertize ,STR 'face (list ,@PROPS)))
-  ;;
-  (defmacro esh-section (NAME ICON FORM &rest PROPS)
-    "Build eshell section NAME with ICON prepended to evaled FORM with PROPS."
-    `(setq ,NAME
-           (lambda () (when ,FORM
-                        (-> ,ICON
-                            (concat esh-section-delim ,FORM)
-                            (with-face ,@PROPS))))))
-  ;;
-  (defun esh-acc (acc x)
-    "Accumulator for evaluating and concatenating esh-sections."
-    (--if-let (funcall x)
-        (if (s-blank? acc)
-            it
-          (concat acc esh-sep it))
-      acc))
-  ;;
-  (defun esh-prompt-func ()
-    "Build `eshell-prompt-function'"
-    (concat esh-header
-            (-reduce-from 'esh-acc "" eshell-funcs)
-            "\n"
-            eshell-prompt-string))
-  ;;
-  ;;
-  ;; Unicode icons on Emacs
-  ;; `list-character-sets' and select unicode-bmp
-  ;; scroll through bitmaps list to find the one you want
-  ;; some bitmaps seem to change
-  ;;
-  (esh-section esh-dir
-               "\xf07c"  ;  (faicon folder)
-               (abbreviate-file-name (eshell/pwd))
-               '(:foreground "olive" :bold bold :underline t))
-  ;;
-  (esh-section esh-git
-               "\xf397"  ;  (git branch icon)
-               (magit-get-current-branch)
-               '(:foreground "maroon"))
-  ;;
-  ;; (esh-section esh-python
-  ;;              "\xe928"  ;  (python icon)
-  ;;              pyvenv-virtual-env-name)
-  ;;
-  (esh-section esh-clock
-               ""  ;  (clock icon)
-               (format-time-string "%H:%M" (current-time))
-               '(:foreground "forest green"))
-  ;;
-  ;; Below I implement a "prompt number" section
-  (setq esh-prompt-num 0)
-  (add-hook 'eshell-exit-hook (lambda () (setq esh-prompt-num 0)))
-  (advice-add 'eshell-send-input :before
-              (lambda (&rest args) (setq esh-prompt-num (incf esh-prompt-num))))
-  ;;
-  ;;
-  ;; "\xf0c9"  ;  (list icon)
-  (esh-section esh-num
-               "\x2130"  ;  ℰ (eshell icon)
-               (number-to-string esh-prompt-num)
-               '(:foreground "brown"))
-  ;;
-  ;; Separator between esh-sections
-  (setq esh-sep " ")  ; or " | "
-  ;;
-  ;; Separator between an esh-section icon and form
-  (setq esh-section-delim "")
-  ;;
-  ;; Eshell prompt header
-  (setq esh-header "\n ")  ; or "\n┌─"
-  ;;
-  ;; Eshell prompt regexp and string. Unless you are varying the prompt by eg.
-  ;; your login, these can be the same.
-  (setq eshell-prompt-regexp " \x2130 ")   ; or "└─> "
-  (setq eshell-prompt-string " \x2130 ")   ; or "└─> "
-  ;;
-  ;; Choose which eshell-funcs to enable
-  ;; (setq eshell-funcs (list esh-dir esh-git esh-python esh-clock esh-num))
-  ;; (setq eshell-funcs (list esh-dir esh-git esh-clock esh-num))
-  (setq eshell-funcs (list esh-dir esh-git))
-
-  ;; Enable the new eshell prompt
-  (setq eshell-prompt-function 'esh-prompt-func)
-
-  ;; End of Eshell
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ;;;;;;;;;;
-
-  ;; (setq cider-format-code-options '(("indents" ((">defn" (("inner" 1)))))))
-
-  ;; disable LSP indent on paste
-  ;; https://github.com/syl20bnr/spacemacs/issues/14488
-  ;; (dolist (func '(yank yank-pop evil-paste-before evil-paste-after))
-  ;;   (advice-remove func #'spacemacs//yank-indent-region))
-
-
-  ;; indentinator ------------
-  ;; (add-to-list 'load-path "/Users/luis/.spacemacs.d/packages/indentinator")
-  ;; (require 'indentinator)
-  ;; (add-hook 'emacs-lisp-mode-hook #'indentinator-mode)
-  ;; (add-hook 'clojure-mode-hook #'indentinator-mode)
-  ;; (setq indentinator-initial-idle-time 0.6)
-  ;; (setq indentinator-idle-time 0.6)
-  ;;
-  ;;
-
-  ;; auto indent code. too aggressive with lsp
-  ;; seems to cause massive slowdown with lsp:
-  ;; (add-hook 'clojure-mode-hook #'aggressive-indent-mode)
-  ;; (add-hook 'emacs-elisp-mode-hook #'aggressive-indent-mode)
-
-  ;; (defun indent-clojure ()
-  ;;   (when (eq major-mode 'clojure-mode)
-  ;;     (clojure-align)))
-  ;; (add-hook 'after-save-hook #'indent-clojure)
-
-  ;; fix way too eager aggressive indent with clojure lsp
-  ;; (require 'aggressive-indent)
-  ;; (add-to-list
-  ;;  'aggressive-indent-dont-indent-if
-  ;;  '(and (derived-mode-p 'clojure-mode)
-  ;;        (or (thing-at-point 'whitespace)
-  ;;            (string= ":" (thing-at-point 'sexp)) )
-  ;;        (null (string-blank-p (thing-at-point 'line)))
-  ;;        ))
-  ;; (add-to-list 'aggressive-indent-dont-indent-if
-  ;;              '(eq (char-before) ?\s))
-
-  ;; for testing:
-  ;;(setq aggressive-indent-dont-indent-if nil)
-
-  ;;
-  ;; RUST
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (require 'toml-mode)
-  (add-hook 'toml-mode #'turn-on-smartparens-mode)
-
-  ;;;;;;;;;;;;;;;;;
-  ;;
-  ;; LEDGER
-  ;;
-  (add-hook 'ledger-mode #'smartparens-mode)
-
-  ;;;;;;;;;;;;;;;;;
-  ;;
-  ;;
-  ;;
-  ;; (setq xbuff (generate-new-buffer "*my output*"))
-
-  ;; (evil-window-right 1)
-  ;; (print (string= ":" (thing-at-point 'sexp)) xbuff)
-
-  ;; (print (null (string-blank-p (thing-at-point 'line))) xbuff)
-
-  ;; (print (let (ret)
-  ;;          (mapatoms (lambda (s)
-  ;;                      (when (cl-loop for prop in '(beginning-op end-op bounds-of-thing-at-point thing-at-point forward-op)
-  ;;                                     thereis (get s prop))
-  ;;                        (push s ret))))
-  ;;          ret)
-  ;;        xbuff)
-
-  ;; (switch-to-buffer xbuff)
-  )
+  (load (dsppath "user-config.el")))
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -1412,7 +754,6 @@ This function is called at the very end of Spacemacs initialization."
  '(emms-mode-line-icon-color "#1ba1a1")
  '(evil-want-C-u-scroll t)
  '(evil-want-Y-yank-to-eol nil)
- '(fci-rule-color "#404040")
  '(gnus-logo-colors '("#4c8383" "#bababa") t)
  '(gnus-mode-line-image-cache
    '(image :type xpm :ascent center :data "/* XPM */
@@ -1438,15 +779,6 @@ static char *gnus-pointer[] = {
 \"###########.######\" };") t)
  '(helm-completion-style 'emacs)
  '(highlight-changes-colors '("#FD5FF0" "#AE81FF"))
- '(highlight-tail-colors
-   '(("#3C3D37" . 0)
-     ("#679A01" . 20)
-     ("#4BBEAE" . 30)
-     ("#1DB4D0" . 50)
-     ("#9A8F21" . 60)
-     ("#A75B00" . 70)
-     ("#F309DF" . 85)
-     ("#3C3D37" . 100)))
  '(hl-sexp-background-color "#1c1f26")
  '(hl-todo-keyword-faces
    '(("TODO" . "#dc752f")
@@ -1470,8 +802,7 @@ static char *gnus-pointer[] = {
  '(mouse-wheel-tilt-scroll t)
  '(ns-use-native-fullscreen t t)
  '(package-selected-packages
-   '(nix-mode company-nixos-options nixos-options zprint-mode yaml-mode lsp-dart flutter dart-server dart-mode mvn maven-test-mode lsp-java dap-mode bui groovy-mode groovy-imports orgit-forge orgit org-rich-yank org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download org-contrib org org-cliplink org-brain gnuplot evil-org adoc-mode markup-faces magit-todos wgrep unicode-fonts ucs-utils font-utils smex ranger persistent-soft lsp-ivy ligature ivy-yasnippet ivy-xref ivy-purpose ivy-hydra ivy-avy graphviz-dot-mode counsel-projectile counsel-css counsel swiper ivy company-box frame-local doom-themes cyberpunk-theme flycheck-ledger evil-ledger ledger-mode stickyfunc-enhance srefactor vmd-mode mmm-mode markdown-toc gh-md cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
- '(pdf-view-midnight-colors '("#b2b2b2" . "#292b2e"))
+   '(zig-mode pydoc inspector info+ git-modes cider-test nix-mode company-nixos-options nixos-options zprint-mode yaml-mode lsp-dart flutter dart-server dart-mode mvn maven-test-mode lsp-java dap-mode bui groovy-mode groovy-imports orgit-forge orgit org-rich-yank org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download org-contrib org org-cliplink org-brain gnuplot evil-org adoc-mode markup-faces magit-todos wgrep unicode-fonts ucs-utils font-utils smex ranger persistent-soft lsp-ivy ligature ivy-yasnippet ivy-xref ivy-purpose ivy-hydra ivy-avy graphviz-dot-mode counsel-projectile counsel-css counsel swiper ivy company-box frame-local doom-themes cyberpunk-theme flycheck-ledger evil-ledger ledger-mode stickyfunc-enhance srefactor vmd-mode mmm-mode markdown-toc gh-md cfrs posframe origami lsp-mode dash-functional unfill mwim clj-refactor inflections xterm-color vterm terminal-here shell-pop multi-term eshell-z eshell-prompt-extras esh-help monokai-theme gruvbox-theme autothemer color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized ample-theme material-theme reverse-theme grandshell-theme flycheck-joker flycheck-clj-kondo sublime-themes lush-theme doom-modeline shrink-path alect-themes afternoon-theme yasnippet-snippets ws-butler writeroom-mode winum which-key web-mode web-beautify volatile-highlights vi-tilde-fringe valign uuidgen use-package undo-tree treemacs-projectile treemacs-persp treemacs-magit treemacs-icons-dired treemacs-evil toc-org tagedit symon symbol-overlay string-inflection spaceline-all-the-icons smeargle slim-mode scss-mode sass-mode reveal-in-osx-finder restart-emacs rainbow-delimiters pug-mode prettier-js popwin pcre2el password-generator paradox overseer osx-trash osx-dictionary osx-clipboard org-superstar open-junk-file nodejs-repl nameless move-text magit-svn magit-section magit-gitflow macrostep lsp-ui lsp-treemacs lsp-origami lorem-ipsum livid-mode lispy link-hint launchctl json-navigator json-mode js2-refactor js-doc indent-guide impatient-mode hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-org helm-mode-manager helm-make helm-lsp helm-ls-git helm-gitignore helm-git-grep helm-flx helm-descbinds helm-css-scss helm-company helm-cider helm-c-yasnippet helm-ag google-translate golden-ratio gitignore-templates gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ fuzzy forge font-lock+ flycheck-pos-tip flycheck-package flycheck-elsa flx-ido fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-easymotion evil-cleverparens evil-args evil-anzu emr emmet-mode elisp-slime-nav editorconfig dumb-jump dotenv-mode dired-quick-sort diminish devdocs company-web column-enforce-mode clojure-snippets clean-aindent-mode cider-eval-sexp-fu centered-cursor-mode browse-at-remote auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line ac-ispell))
  '(pos-tip-background-color "#FFFACE")
  '(pos-tip-foreground-color "#272822")
  '(safe-local-variable-values
@@ -1517,27 +848,6 @@ static char *gnus-pointer[] = {
  '(scroll-conservatively 101)
  '(scroll-preserve-screen-position t)
  '(spaceline-all-the-icons-hide-long-buffer-path t)
- '(vc-annotate-background "#404040")
- '(vc-annotate-color-map
-   '((20 . "#ea4141")
-     (40 . "#db4334")
-     (60 . "#e9e953")
-     (80 . "#c9d617")
-     (100 . "#dc7700")
-     (120 . "#bcaa00")
-     (140 . "#29b029")
-     (160 . "#47cd57")
-     (180 . "#60a060")
-     (200 . "#319448")
-     (220 . "#078607")
-     (240 . "#1ec1c4")
-     (260 . "#1ba1a1")
-     (280 . "#26d5d5")
-     (300 . "#58b1f3")
-     (320 . "#00a2f5")
-     (340 . "#1e7bda")
-     (360 . "#da26ce")))
- '(vc-annotate-very-old-color "#da26ce")
  '(warning-suppress-log-types '((comp)))
  '(weechat-color-list
    '(unspecified "#272822" "#3C3D37" "#F70057" "#F92672" "#86C30D" "#A6E22E" "#BEB244" "#E6DB74" "#40CAE4" "#66D9EF" "#FB35EA" "#FD5FF0" "#74DBCD" "#A1EFE4" "#F8F8F2" "#F8F8F0")))
@@ -1546,6 +856,9 @@ static char *gnus-pointer[] = {
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(font-lock-comment-delimiter-face ((t (:foreground "#cbb567" :background "#2e2c29"))))
+ '(font-lock-comment-face ((t (:foreground "#c6a358" :background "#2e2c29"))))
+ '(font-lock-constant-face ((t (:foreground "#d3869b"))))
  '(mode-line ((t (:height 0.92))))
  '(mode-line-inactive ((t (:height 0.92)))))
 )
