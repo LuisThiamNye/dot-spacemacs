@@ -1,3 +1,5 @@
+(setq max-specpdl-size 3000)
+
 (load (dsppath "theme.el"))
 (load (dsppath "shell.el"))
 (with-eval-after-load 'lsp-mode
@@ -11,6 +13,22 @@
                'inf-carp-mode)
   ;; (remove-hook 'carp-mode-hook #'inf-carp-mode)
   )
+
+;;
+;; Magit
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; performance
+;; https://magit.vc/manual/magit/Performance.html#Committing-Performance-1
+;; (add-hook 'server-switch-hook 'magit-commit-diff)
+
+;; https://jakemccrary.com/blog/2020/11/14/speeding-up-magit/
+;; (add-hook 'magit-status-sections-hook 'magit-insert-tags-header)
+;; (add-hook 'magit-status-sections-hook 'magit-insert-status-headers)
+;; (add-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-pushremote)
+;; (add-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-pushremote)
+;; (add-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-upstream)
+;; (add-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-upstream-or-recent)
 
 ;;
 ;; Projectile
@@ -63,7 +81,14 @@
 
 (with-eval-after-load 'treemacs-mode
   (define-key treemacs-mode-map [mouse-1] #'treemacs-single-click-expand-action)
-  (setq treemacs-collapse-dirs 7))
+  (setq treemacs-collapse-dirs 7)
+
+  (defun my-treemacs-ignore-pred (filename absolute-path)
+    (or (string-equal filename "__pycache__")
+        (string-equal filename ".cpcache")
+        (string-equal filename ".pytest_cache")))
+
+  (add-to-list 'treemacs-ignored-file-predicates #'my-treemacs-ignore-pred))
 
 ;;
 ;; Editing
@@ -119,9 +144,9 @@
 ;; RUST
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(add-hook 'toml-mode-hook #'spacemacs//activate-smartparens)
+;(add-hook 'toml-mode-hook #'spacemacs//activate-smartparens)
 
 ;;
 ;; LEDGER
 ;;;;;;;;;;;;;;;;;
-(add-hook 'ledger-mode-hook #'spacemacs//activate-smartparens)
+;(add-hook 'ledger-mode-hook #'spacemacs//activate-smartparens)

@@ -60,7 +60,10 @@
 (spacemacs|forall-clojure-modes m
   (spacemacs/set-leader-keys-for-major-mode
     m "#" 'clojure-toggle-reader-comment-sexp
-    "gg" 'lsp-find-definition))
+    "gg" 'lsp-find-definition
+    "rr" 'lsp-rename
+    "=b" 'lsp-format-buffer
+    "=r" 'lsp-format-region))
 
 ;; Toggle view of a clojure `(comment ,,,) block'
 (defun clojure-hack/toggle-comment-block (arg)

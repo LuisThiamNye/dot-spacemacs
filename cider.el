@@ -29,6 +29,11 @@
 ;;   (interactive "r")
 ;;   (rebl-interactive-eval (buffer-substring start end) (list start end)))
 
+;; Use LSP completions instead when at the REPL
+(add-hook 'cider-mode-hook
+          (lambda ()
+            (remove-hook 'completion-at-point-functions #'cider-complete-at-point)))
+
 (defvar me-hijack-cider-eval-wrap-form nil)
 
 (defun cider-interactive-eval (formin &optional callback bounds additional-params)
@@ -110,12 +115,20 @@ arguments and only proceed with evaluation if it returns nil."
 (defun vlaaad.reveal/open ()
   (interactive)
   (cider-nrepl-sync-request:eval
-   "(create-ns 'dev)(intern 'dev 'reveal((requiring-resolve 'vlaaad.reveal/ui)))"))
+   "(create-ns 'dev)(intern 'dev 'reveal((requiring-resolve 'vlaaad.reveal/ui) :title \"Emacs General\" :close-difficulty :normal))"))
 
 (defun vlaaad.reveal/clear ()
   (interactive)
   (cider-nrepl-sync-request:eval
    "(when (resolve 'dev/reveal) (dev/reveal {:vlaaad.reveal/command '(clear-output)}))"))
+
+(defun vlaaad.reveal/open-tap-log ()
+  (interactive)
+  (cider-nrepl-sync-request:eval "(vlaaad.reveal/tap-log)"))
+
+(defun vlaaad.reveal/open-ui-tap-log ()
+  (interactive)
+  (cider-nrepl-sync-request:eval "(add-tap (vlaaad.reveal/ui :title \"Taps\" :close-difficulty :normal))"))
 
 (defun portal.api/open ()
   (interactive)
@@ -146,6 +159,9 @@ arguments and only proceed with evaluation if it returns nil."
   (spacemacs/set-leader-keys-for-major-mode m
     "dp" 'portal.api/open
     "dr" 'vlaaad.reveal/open
+    "dtr" 'vlaaad.reveal/open-ui-tap-log
+    "dtR" 'vlaaad.reveal/open-tap-log
+    "dcr" 'vlaaad.reveal/clear
     "eF" 'cider-eval-defun-up-to-point
     ": o" 'rebl-toggle-hijack-cider-eval
     "SPC e" (rebl-make-cider-eval-fun "main" 'cider-eval-last-sexp)

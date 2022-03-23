@@ -152,7 +152,7 @@ This function should only modify configuration layer settings."
               clojure-enable-clj-refactor t
 
               ;; https://docs.cider.mx/cider/1.1/usage/pretty_printing.html
-              cider-print-fn 'fipp
+              cider-print-fn 'puget ;; colours and canonical printing, but at slight performance cost. ALternative: 'fipp
               cider-print-quota 500000
               cider-print-options '(("length" 50)
                                     ("level" 7)
@@ -169,6 +169,8 @@ This function should only modify configuration layer settings."
               clojure-align-forms-automatically nil
               clojure-enable-fancify-symbols nil
               clojure-toplevel-inside-comment-form t
+
+              cider-clojure-cli-command (if (eq system-type 'windows-nt) "pwsh" cider-clojure-cli-command)
               ;;
               )
      (rust :variables
@@ -177,10 +179,10 @@ This function should only modify configuration layer settings."
            rust-indent-offset 2
            cargo-process-reload-on-modify t)
      carp
-     (dart :variables
-           lsp-dart-sdk-dir (concat home-dir "installations/flutter/bin/cache/dart-sdk/")
-           lsp-dart-flutter-sdk-dir (concat home-dir "installations/flutter/")
-           flutter-sdk-path (concat home-dir "installations/flutter/"))
+     ;; (dart :variables
+     ;;       lsp-dart-sdk-dir (concat home-dir "installations/flutter/bin/cache/dart-sdk/")
+     ;;       lsp-dart-flutter-sdk-dir (concat home-dir "installations/flutter/")
+     ;;       flutter-sdk-path (concat home-dir "installations/flutter/"))
      emacs-lisp
      semantic ;; provides elisp formatting:
      zig
@@ -191,14 +193,15 @@ This function should only modify configuration layer settings."
      asciidoc
      (markdown :variables markdown-live-preview-engine 'vmd)
 
-     python
+     (python :variables
+             python-backend 'anaconda
+             live-py-update-all-delay 1)
      yaml
      java
      html
      javascript
-     typescript
+     ;; typescript
 
-     finance
      latex
 
      ;; Themes
@@ -263,9 +266,13 @@ It should only modify the values of Spacemacs settings."
   ;; This setq-default sexp is an exhaustive list of all the supported
   ;; spacemacs settings
   (setq-default
-   ;; If non-nil then enable support for the portable dumper. You'll need
-   ;; to compile Emacs 27 from source following the instructions in file
+   ;; If non-nil then enable support for the portable dumper. You'll need to
+   ;; compile Emacs 27 from source following the instructions in file
    ;; EXPERIMENTAL.org at to root of the git repository.
+   ;;
+   ;; WARNING: pdumper does not work with Native Compilation, so it's disabled
+   ;; regardless of the following setting when native compilation is in effect.
+   ;;
    ;; (default nil)
    dotspacemacs-enable-emacs-pdumper nil
 
@@ -305,7 +312,7 @@ It should only modify the values of Spacemacs settings."
    ;; Setting this >= 1 MB should increase performance for lsp servers
    ;; in emacs 27.
    ;; (default (* 1024 1024))
-   dotspacemacs-read-process-output-max (* 1024 1024 3)
+   dotspacemacs-read-process-output-max (* 1024 1024 20)
 
    ;; If non-nil then Spacelpa repository is the primary source to install
    ;; a locked version of packages. If nil then Spacemacs will install the
@@ -373,6 +380,11 @@ It should only modify the values of Spacemacs settings."
 
    ;; The minimum delay in seconds between number key presses. (default 0.4)
    dotspacemacs-startup-buffer-multi-digit-delay 0.4
+
+   ;; If non-nil, show file icons for entries and headings on Spacemacs home buffer.
+   ;; This has no effect in terminal or if "all-the-icons" package or the font
+   ;; is not installed. (default nil)
+   dotspacemacs-startup-buffer-show-icons t
 
    ;; Default major mode for a new empty buffer. Possible values are mode
    ;; names such as `text-mode'; and `nil' to use Fundamental mode.
@@ -601,6 +613,10 @@ It should only modify the values of Spacemacs settings."
    ;; (default nil)
    dotspacemacs-smartparens-strict-mode t
 
+   ;; If non-nil smartparens-mode will be enabled in programming modes.
+   ;; (default t)
+   dotspacemacs-activate-smartparens-mode t
+
    ;; If non-nil pressing the closing parenthesis `)' key in insert mode passes
    ;; over any automatically added closing parenthesis, bracket, quote, etc...
    ;; This can be temporary disabled by pressing `C-q' before `)'. (default nil)
@@ -667,8 +683,8 @@ It should only modify the values of Spacemacs settings."
    ;; (default nil)
    dotspacemacs-whitespace-cleanup 'all
 
-   ;; If non nil activate `clean-aindent-mode' which tries to correct
-   ;; virtual indentation of simple modes. This can interfer with mode specific
+   ;; If non-nil activate `clean-aindent-mode' which tries to correct
+   ;; virtual indentation of simple modes. This can interfere with mode specific
    ;; indent handling like has been reported for `go-mode'.
    ;; If it does deactivate it here.
    ;; (default t)
@@ -694,7 +710,7 @@ It should only modify the values of Spacemacs settings."
    dotspacemacs-pretty-docs t
 
    ;; If nil the home buffer shows the full path of agenda items
-   ;; and todos. If non nil only the file name is shown.
+   ;; and todos. If non-nil only the file name is shown.
    dotspacemacs-home-shorten-agenda-source nil
 
    ;; If non-nil then byte-compile some of Spacemacs files.
@@ -707,7 +723,8 @@ This function defines the environment variables for your Emacs session. By
 default it calls `spacemacs/load-spacemacs-env' which loads the environment
 variables declared in `~/.spacemacs.env' or `~/.spacemacs.d/.spacemacs.env'.
 See the header of this file for more information."
-  (spacemacs/load-spacemacs-env))
+  (spacemacs/load-spacemacs-env)
+)
 
 (defun dotspacemacs/user-init ()
   "Initialization for user code:
@@ -717,12 +734,14 @@ It is mostly for variables that should be set before packages are loaded.
 If you are unsure, try setting them in `dotspacemacs/user-config' first."
   (load (dsppath "user-init.el")))
 
+
 (defun dotspacemacs/user-load ()
   "Library to load while dumping.
 This function is called only while dumping Spacemacs configuration. You can
 `require' or `load' the libraries of your choice that will be included in the
 dump."
-  )
+)
+
 
 (defun dotspacemacs/user-config ()
   "Configuration for user code:
@@ -806,7 +825,10 @@ static char *gnus-pointer[] = {
  '(pos-tip-background-color "#FFFACE")
  '(pos-tip-foreground-color "#272822")
  '(safe-local-variable-values
-   '((cider-clojure-cli-aliases . "test:dev")
+   '((python-formatter . yapf)
+     (nil)
+     (python-test-runner quote pytest)
+     (cider-clojure-cli-aliases . "test:dev")
      (elisp-lint-indent-specs
       (if-let* . 2)
       (when-let* . 1)

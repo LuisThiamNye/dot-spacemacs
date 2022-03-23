@@ -1,3 +1,5 @@
+(setq package-native-compile t)
+
 ;; (setq cljr-ignore-analyzer-errors nil)
 
 ;; Visual line navigation for textual modes
